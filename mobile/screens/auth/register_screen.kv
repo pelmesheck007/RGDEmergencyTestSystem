@@ -1,0 +1,75 @@
+
+
+
+<RegisterScreen>:
+    name: 'register'
+
+    MDFloatLayout:
+        md_bg_color: app.rjd_light_red
+
+        MDCard:
+            size_hint: .85, .7
+            pos_hint: {"center_x": .5, "center_y": .5}
+            elevation: 8
+            padding: 25
+            spacing: 25
+            orientation: "vertical"
+            md_bg_color: app.rjd_white
+
+            MDLabel:
+                text: "Регистрация"
+                font_style: "H5"
+                halign: "center"
+                size_hint_y: None
+                height: self.texture_size[1]
+                theme_text_color: "Custom"
+                text_color: app.rjd_dark_red
+
+            MDTextField:
+                hint_text: "ФИО"
+                size_hint_x: .9
+                pos_hint: {"center_x": .5}
+                icon_left: "account-details"
+                line_color_normal: app.rjd_dark_red
+                line_color_focus: app.rjd_dark_red
+
+            MDTextField:
+                hint_text: "Табельный номер"
+                size_hint_x: .9
+                pos_hint: {"center_x": .5}
+                icon_left: "badge-account"
+                line_color_normal: app.rjd_dark_red
+                line_color_focus: app.rjd_dark_red
+
+            MDTextField:
+                hint_text: "Пароль"
+                size_hint_x: .9
+                pos_hint: {"center_x": .5}
+                icon_left: "key"
+                password: True
+                line_color_normal: app.rjd_dark_red
+                line_color_focus: app.rjd_dark_red
+
+            MDTextField:
+                hint_text: "Подтвердите пароль"
+                size_hint_x: .9
+                pos_hint: {"center_x": .5}
+                icon_left: "key-change"
+                password: True
+                line_color_normal: app.rjd_dark_red
+                line_color_focus: app.rjd_dark_red
+
+            MDRaisedButton:
+                text: "ЗАРЕГИСТРИРОВАТЬСЯ"
+                size_hint_x: .9
+                pos_hint: {"center_x": .5}
+                md_bg_color: app.rjd_dark_red
+                font_style: "Button"
+                bold: True
+
+            MDTextButton:
+                text: "Уже есть аккаунт? Войти"
+                theme_text_color: "Custom"
+                text_color: app.rjd_dark_red
+                pos_hint: {"center_x": .5}
+                on_release: app.root.current = 'login'

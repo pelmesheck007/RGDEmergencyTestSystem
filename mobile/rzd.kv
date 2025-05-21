@@ -1,0 +1,31 @@
+#:import LoginScreen screens.auth.login_screen.LoginScreen
+#:import RegisterScreen screens.auth.register_screen.RegisterScreen
+#:import MainScreen screens.main.main_screen.MainScreen
+
+MDScreenManager:
+    id: screen_manager
+
+    on_current: app.on_screen_change(self.current)
+
+    LoginScreen:
+        name: 'login'
+        id: login_screen
+        on_enter: root.current_screen = 'login'
+
+    RegisterScreen:
+        name: 'register'
+        on_enter: root.current_screen = 'register'
+
+    MainScreen:
+        name: 'main'
+        id: main_screen
+        on_enter:
+            root.current_screen = 'main'
+            root.get_screen('main').on_screen_enter()
+        on_leave:
+            root.get_screen('main').on_screen_leave()
+
+# Подключаем остальные KV-разметки из отдельных файлов
+#:include screens/auth/login_screen.kv
+#:include screens/auth/register_screen.kv
+#:include screens/main/main_screen.kv

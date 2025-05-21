@@ -1,0 +1,61 @@
+<MainScreen>:
+    name: 'main'
+
+    MDFloatLayout:
+        md_bg_color: app.rjd_light_red
+
+        MDCard:
+            size_hint: .85, .7
+            pos_hint: {"center_x": .5, "center_y": .5}
+            elevation: 8
+            padding: 25
+            spacing: 25
+            orientation: "vertical"
+            md_bg_color: app.rjd_white
+
+            MDSpinner:
+                id: loading_spinner
+                size_hint: None, None
+                size: dp(46), dp(46)
+                pos_hint: {'center_x': 0.5}
+                active: True
+
+            MDLabel:
+                text: root.welcome_message
+                font_style: "H4"
+                halign: "center"
+
+
+            MDLabel:
+                text: f"ФИО: {root.full_name}"
+                font_style: "H5"
+                halign: "center"
+                size_hint_y: None
+                height: self.texture_size[1]
+                theme_text_color: "Custom"
+                text_color: app.rjd_dark_red
+
+            MDLabel:
+                text: f"Логин: {root.username}"
+                font_style: "H6"
+                halign: "center"
+                size_hint_y: None
+                height: self.texture_size[1]
+                theme_text_color: "Custom"
+                text_color: app.rjd_dark_red
+
+            MDLabel:
+                text: f"Роль: {root.role}"
+                font_style: "H6"
+                halign: "center"
+                size_hint_y: None
+                height: self.texture_size[1]
+                theme_text_color: "Custom"
+                text_color: app.rjd_dark_red
+
+            MDRaisedButton:
+                text: "ВЫЙТИ"
+                size_hint_x: .5
+                pos_hint: {"center_x": .5}
+                md_bg_color: app.rjd_dark_red
+                on_release: root.logout()
