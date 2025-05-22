@@ -7,7 +7,6 @@ from kivy.properties import StringProperty, ObjectProperty
 from kivymd.app import MDApp
 
 
-
 class MainScreen(MDScreen):
     username = StringProperty("")
     role = StringProperty("")
@@ -30,13 +29,6 @@ class MainScreen(MDScreen):
         self.create_role_menu()
         self.update_ui()
 
-    def open_profile(self):
-        app = MDApp.get_running_app()
-        if 'profile' not in app.root.screen_names:
-            from mobile.screens.menu.profile_screen import ProfileScreen
-            app.root.add_widget(ProfileScreen(name='profile'))
-        app.root.current = 'profile'
-
     def load_user_data(self):
         """Загрузка данных пользователя с проверкой"""
         app = MDApp.get_running_app()
@@ -50,23 +42,12 @@ class MainScreen(MDScreen):
         self.email = user.get('email', '')
         return True
 
-    def create_menu_item(self, text, icon, action, callback):
-        return {
-            "text": text,
-            "icon": icon,
-            "viewclass": "OneLineIconListItem",
-            "height": dp(48),
-            "on_release": lambda x=action: callback(x)
-        }
-
-
-
     def create_role_menu(self):
         """Создание меню для текущей роли"""
         role = MDApp.get_running_app().user_data.get('role', 'student')
 
         menu_items = [
-            self.create_menu_item("Профиль", "chart-box", "profile", self.open_profile),
+            self.create_menu_item("Профиль", "chart-box", "profile", self.default_action),
             self.create_menu_item("Тесты", "play-box", "tests", self.default_action),
             self.create_menu_item("Классы", "chart-box", "classes", self.default_action)
         ]
@@ -87,7 +68,15 @@ class MainScreen(MDScreen):
         )
         self.menu.md_bg_color = MDApp.get_running_app().rjd_dark_red
 
-
+    def create_menu_item(self, text, icon, action, callback):
+        """Создание элемента меню"""
+        return {
+            "text": text,
+            "icon": icon,
+            "viewclass": "OneLineIconListItem",
+            "height": dp(48),
+            "on_release": lambda x=action: callback(x)
+        }
 
     def update_ui(self):
         """Обновление интерфейса после загрузки данных"""

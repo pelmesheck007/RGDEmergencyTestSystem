@@ -10,7 +10,12 @@ from datetime import datetime
 import logging
 from pathlib import Path
 from datetime import datetime
+from kivymd.uix.snackbar import MDSnackbar
 
+class SafeScreenManager(ScreenManager):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.transition = SlideTransition()  # Явная инициализация перехода
 class RZDLoginApp(MDApp):
     def build(self):
         self.theme_cls.primary_palette = "Red"

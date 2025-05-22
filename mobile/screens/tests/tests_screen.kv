@@ -4,30 +4,35 @@
     MDFloatLayout:
         md_bg_color: app.rjd_light_red
 
+        # Главная карточка с уменьшенными отступами
         MDCard:
-            size_hint: .9, .88
-            pos_hint: {"center_x": .5, "top": .95}
+            size_hint: .9, .88  # Увеличена высота для лучшего заполнения
+            pos_hint: {"center_x": .5, "top": .95}  # Поднято к верху
             elevation: 8
-            padding: [20, 15, 20, 15]
+            padding: [20, 15, 20, 15]  # Оптимизированные отступы
             spacing: 12
             orientation: "vertical"
             md_bg_color: app.rjd_white
             radius: [12]
 
+            # Панель меню в самом верху
             MDTopAppBar:
                 id: menu_button
                 title: root.screen_title
-                left_action_items: [["menu", lambda x: root.open_menu()]]
-                right_action_items: [["logout", lambda x: root.logout()]]
+                right_action_items: [["menu", lambda x: root.open_menu()]]
+                left_action_items: [["logout", lambda x: root.logout()]]
                 elevation: 2
                 md_bg_color: app.rjd_dark_red
                 specific_text_color: app.rjd_white
                 font_style: "H6"
-                pos_hint: {"top": 1}
+                pos_hint: {"top": 1}  # Фиксируем вверху карточки
                 size_hint_y: None
                 height: dp(56)
 
+            # Прокручиваемая область для контента
             ScrollView:
+                size_hint: 1, 1
+                pos_hint: {"top": 0.95}
                 bar_width: dp(4)
                 bar_color: app.rjd_dark_red
 
@@ -61,6 +66,7 @@
                         height: self.texture_size[1]
                         theme_text_color: "Custom"
                         text_color: app.rjd_dark_red
+
 
                     Widget:
                         size_hint_y: None

@@ -1,6 +1,7 @@
 #:import LoginScreen screens.auth.login_screen.LoginScreen
 #:import RegisterScreen screens.auth.register_screen.RegisterScreen
 #:import MainScreen screens.main.main_screen.MainScreen
+#:import ProfileScreen screens.menu.profile_screen.ProfileScreen
 
 MDScreenManager:
     id: screen_manager
@@ -16,6 +17,8 @@ MDScreenManager:
         name: 'register'
         on_enter: root.current_screen = 'register'
 
+
+
     MainScreen:
         name: 'main'
         id: main_screen
@@ -29,3 +32,4 @@ MDScreenManager:
 #:include screens/auth/login_screen.kv
 #:include screens/auth/register_screen.kv
 #:include screens/main/main_screen.kv
+#:include screens/menu/profile_screen.kv
