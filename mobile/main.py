@@ -10,7 +10,7 @@ from datetime import datetime
 import logging
 from pathlib import Path
 from datetime import datetime
-from kivymd.uix.snackbar import MDSnackbar
+
 
 class SafeScreenManager(ScreenManager):
     def __init__(self, **kwargs):
