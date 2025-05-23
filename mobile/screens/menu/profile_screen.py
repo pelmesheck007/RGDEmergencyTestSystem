@@ -2,8 +2,17 @@ from kivy.network.urlrequest import UrlRequest
 from kivy.clock import Clock
 import json
 import logging
-from screens.base_screen import BaseScreen
+from mobile.screens.base_screen import BaseScreen
 from kivy.properties import StringProperty, BooleanProperty
+from kivy.uix.filechooser import FileChooserIconView
+from kivy.uix.popup import Popup
+from kivy.uix.image import Image
+from kivy.core.window import Window
+import os
+
+from kivy.properties import StringProperty
+
+# уже есть: avatar_url = StringProperty("")
 
 
 class ProfileScreen(BaseScreen):
@@ -11,6 +20,12 @@ class ProfileScreen(BaseScreen):
     full_name = StringProperty("")
     email = StringProperty("")
     edit_mode = BooleanProperty(False)
+    registration_date = StringProperty("")
+    avatar_url = StringProperty("")
+    is_active = BooleanProperty(True)
+    role = StringProperty("")
+
+
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -24,14 +39,22 @@ class ProfileScreen(BaseScreen):
         self.screen_title = "Профиль"
 
     def _load_profile_data(self, user_data):
-        """Загрузка данных профиля"""
         self.username = user_data.get('username', '')
         self.full_name = user_data.get('full_name', '')
         self.email = user_data.get('email', '')
+        self.registration_date = user_data.get('registration_date', '')
+        self.avatar_url = user_data.get('avatar_url', '')
+        self.is_active = user_data.get('is_active', True)
+        self.role = user_data.get('role', '')
+
         self.original_data = {
             'username': self.username,
             'full_name': self.full_name,
-            'email': self.email
+            'email': self.email,
+            'role': self.role,
+            'is_active': self.is_active,
+            'registration_date': self.registration_date,  # обычно не редактируемо
+            'avatar_url': self.avatar_url
         }
 
     def toggle_edit_mode(self):
@@ -63,17 +86,27 @@ class ProfileScreen(BaseScreen):
                 raise ValueError("API URL не настроен")
             if not hasattr(self.app, 'token') or not self.app.token:
                 raise ValueError("Требуется авторизация")
+            editable_fields = ['username', 'full_name', 'email', 'role', 'avatar_url', 'is_active']
+            update_data = {}
 
-            update_data = {
-                "username": self.username,
-                "full_name": self.full_name,
-                "email": self.email
-            }
+            for key in editable_fields:
+                current_val = getattr(self, key)
+                original_val = self.original_data.get(key)
+                if current_val != original_val:
+                    update_data[key] = current_val
+
+            if not update_data:
+                self.show_info("Нет изменений для сохранения")
+                self.show_loading(False)
+                self.edit_mode = False
+                return
 
             headers = {
                 'Content-Type': 'application/json',
                 'Authorization': f'Bearer {self.app.token}'
             }
+
+            logging.info(f"[PATCH] Отправка данных профиля: {update_data}")
 
             UrlRequest(
                 f'{self.app.api_url}/users/me',
@@ -104,6 +137,20 @@ class ProfileScreen(BaseScreen):
         if hasattr(self.app, 'user_data'):
             self.app.user_data.update(self.original_data)
         self.edit_mode = False
+
+    def choose_avatar(self):
+        chooser = FileChooserIconView(path=os.getcwd(), filters=["*.png", "*.jpg", "*.jpeg"])
+        popup = Popup(title="Выбор аватара",
+                      content=chooser,
+                      size_hint=(0.9, 0.9))
+
+        def select_file(instance, selection):
+            if selection:
+                self.avatar_url = f"file://{selection[0]}"
+            popup.dismiss()
+
+        chooser.bind(on_submit=lambda instance, selection, touch: select_file(instance, selection))
+        popup.open()
 
     def _handle_save_error(self, req, error):
         """Обработка ошибок сохранения"""

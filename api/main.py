@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, Body
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,8 +10,12 @@ from database import engine, SessionLocal, Base, get_db
 import uvicorn
 from auth import create_access_token, get_password_hash, verify_password, get_user_id_from_token
 from fastapi import Request
+from sqlalchemy.exc import OperationalError
 from api.schemas.user import *
 app = FastAPI()
+
+from api.routers import test
+app.include_router(test.router)  # 👈 это должно быть в main.py
 
 # Настройка CORS
 app.add_middleware(
@@ -103,6 +107,37 @@ def update_me(data: UserUpdate, token: str = Depends(oauth2_scheme), db: Session
     db.refresh(user)
     return user
 
+from pydantic import BaseModel
+from typing import Optional
+
+class UserUpdate(BaseModel):
+    username: Optional[str]
+    full_name: Optional[str]
+    email: Optional[str]
+    password: Optional[str]
+
+@app.patch("/users/me", response_model=UserOut)
+def patch_me(data: UserUpdate, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    user_id = get_user_id_from_token(token)
+    user = db.query(User).get(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    if data.full_name is not None:
+        user.full_name = data.full_name
+    if data.email is not None:
+        user.email = data.email
+    if data.username is not None:
+        user.username = data.username
+    if data.password is not None:
+        user.hashed_password = get_password_hash(data.password)
+
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+
 @app.delete("/users/me")
 def delete_me(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     user_id = get_user_id_from_token(token)
@@ -123,6 +158,29 @@ def delete_user_as_admin(user_id: str, token: str = Depends(oauth2_scheme), db: 
     db.delete(user)
     db.commit()
     return {"detail": "User deleted by admin"}
+
+@app.patch("/users/me", response_model=UserOut)
+def patch_update_me(
+    data: UserUpdate = Body(...),
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)
+):
+    user_id = get_user_id_from_token(token)
+    user = db.query(User).get(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    update_data = data.dict(exclude_unset=True)
+    for field, value in update_data.items():
+        if field == "password":
+            setattr(user, "hashed_password", get_password_hash(value))
+        else:
+            setattr(user, field, value)
+
+    db.commit()
+    db.refresh(user)
+    return user
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="localhost", port=8000)

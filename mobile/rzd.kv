@@ -4,6 +4,9 @@
 #:import ProfileScreen screens.menu.profile_screen.ProfileScreen
 #:import ConfiguringUsersScreen screens.admins.configuring_users.ConfiguringUsersScreen
 #:import SettingsScreen screens.admins.settings_screen.SettingsScreen
+#:import TestsScreen screens.tests.tests_screen.TestsScreen
+#:import TestTakingScreen screens.tests.test_taking_screen.TestTakingScreen
+#:import CreateTestScreen screens.tests.test_taking_screen.CreateTestScreen
 
 MDScreenManager:
     id: screen_manager
@@ -49,8 +52,35 @@ MDScreenManager:
             root.get_screen('settings').on_screen_enter()
         on_leave:
             root.get_screen('settings').on_screen_leave()
-# Подключаем остальные KV-разметки из отдельных файлов
+
+    TestsScreen:
+        name: 'tests'
+        on_enter:
+            app.current_screen = 'tests'
+            root.get_screen('tests').on_pre_enter()
+        on_leave:
+            root.get_screen('tests').on_leave()
+
+    TestTakingScreen:
+        name: 'test_taking'
+        on_enter:
+            app.current_screen = 'test_taking'
+            root.get_screen('test_taking').on_pre_enter()
+        on_leave:
+            root.get_screen('test_taking').on_leave()
+
+    CreateTestScreen:
+        name: 'create_test'
+        on_enter:
+            app.current_screen = 'create_test'
+            root.get_screen('create_test').on_pre_enter()
+        on_leave:
+            root.get_screen('create_test').on_leave()
+
 #:include screens/auth/login_screen.kv
 #:include screens/auth/register_screen.kv
 #:include screens/main/main_screen.kv
 #:include screens/menu/profile_screen.kv
+#:include screens/tests/tests_screen.kv
+#:include screens/tests/test_taking_screen.kv
+#:include screens/tests/create_test_screen.kv

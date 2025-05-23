@@ -1,10 +1,12 @@
 # tests_screen.py
-from kivy.properties import ListProperty, ObjectProperty, StringProperty
+from kivy.properties import ListProperty, ObjectProperty, StringProperty, partial
 from kivy.clock import Clock
 from kivy.network.urlrequest import UrlRequest
 import json
 import logging
-from screens.base_screen import BaseScreen
+
+from kivymd.uix.label import MDLabel
+from mobile.screens.base_screen import BaseScreen
 from kivymd.uix.list import OneLineAvatarIconListItem, IconLeftWidget
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.button import MDFlatButton
@@ -52,7 +54,7 @@ class TestsScreen(BaseScreen):
         }
 
         UrlRequest(
-            f'{self.app.api_url}/tests',
+            f'{self.app.api_url}/tests/',
             on_success=self.on_tests_load_success,
             on_error=self.on_tests_load_error,
             on_failure=self.on_tests_load_error,
@@ -108,7 +110,7 @@ class TestsScreen(BaseScreen):
             item = TestListItem(
                 text=test.get('test_name', 'Без названия'),
                 test_data=test,
-                on_release=lambda x=test: self.show_test_details(x)
+                on_release=lambda _, t=test: self.show_test_details(t)
             )
             self.ids.tests_container.add_widget(item)
 
@@ -152,6 +154,7 @@ class TestsScreen(BaseScreen):
 
         return "\n".join(details) if details else "Дополнительная информация отсутствует"
 
+
     def start_test(self, *args):
         """Начать выбранный тест"""
         if self.dialog:
@@ -166,6 +169,9 @@ class TestsScreen(BaseScreen):
             self.show_error("Неверный ID теста")
             return
 
-        # Здесь будет переход на экран прохождения теста
-        self.show_success(f"Начинаем тест: {self.selected_test.get('test_name')}")
-        # self.navigate_to('test_taking', test_id=test_id)
+        # Сохраняем ID теста в app
+        self.app.current_test_id = test_id
+
+        # Переход на экран прохождения теста
+        self.manager.current = "test_taking"
+

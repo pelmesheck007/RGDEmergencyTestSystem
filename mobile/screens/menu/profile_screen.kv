@@ -7,6 +7,8 @@
             pos_hint: {"center_x": .5, "top": .95}
             elevation: 2
             padding: [20, 15, 20, 15]
+            spacing: 12
+            orientation: "vertical"
             md_bg_color: app.rjd_white
             radius: [12]
 
@@ -17,13 +19,15 @@
                 right_action_items: [["logout", lambda x: root.logout()]]
                 elevation: 2
                 md_bg_color: app.rjd_dark_red
-                specific_text_color: [1, 1, 1, 1]
+                specific_text_color: app.rjd_white
                 font_style: "H6"
                 pos_hint: {"top": 1}
                 size_hint_y: None
                 height: dp(56)
 
             ScrollView:
+                bar_width: dp(4)
+                bar_color: app.rjd_dark_red
                 BoxLayout:
                     orientation: 'vertical'
                     size_hint_y: None
@@ -38,25 +42,81 @@
                         spacing: 10
 
                         MDTextField:
-                            id: username_field
                             hint_text: "Логин"
                             text: root.username
                             disabled: not root.edit_mode
                             on_text: root.username = self.text
 
                         MDTextField:
-                            id: full_name_field
                             hint_text: "ФИО"
                             text: root.full_name
                             disabled: not root.edit_mode
                             on_text: root.full_name = self.text
 
                         MDTextField:
-                            id: email_field
                             hint_text: "Email"
                             text: root.email
                             disabled: not root.edit_mode
                             on_text: root.email = self.text
+
+                        MDTextField:
+                            hint_text: "Роль"
+                            text: root.role
+                            disabled: not root.edit_mode
+                            on_text: root.role = self.text
+
+                        BoxLayout:
+                            orientation: "horizontal"
+                            spacing: dp(10)
+                            size_hint_y: None
+                            height: dp(48)
+
+                            MDRaisedButton:
+                                text: "Выбрать фото"
+                                on_release: root.choose_avatar()
+                                disabled: not root.edit_mode
+
+                            MDRaisedButton:
+                                text: "Загрузить фото"
+                                on_release: root.upload_avatar()
+                                disabled: not root.edit_mode or not root.avatar_url.startswith("file://")
+                                size_hint_y: None
+                                height: dp(40)
+
+
+                            MDLabel:
+                                text: root.avatar_url.split("/")[-1] if root.avatar_url else "Файл не выбран"
+                                theme_text_color: "Secondary"
+                                valign: "middle"
+                                halign: "left"
+
+
+                        BoxLayout:
+                            orientation: "horizontal"
+                            spacing: dp(10)
+                            size_hint_y: None
+                            height: dp(48)
+
+                            MDLabel:
+                                text: "Активный аккаунт"
+                                valign: "center"
+
+                            MDCheckbox:
+                                active: root.is_active
+                                disabled: not root.edit_mode
+                                on_active: root.is_active = self.active
+
+                        MDLabel:
+                            text: "Дата регистрации: " + root.registration_date
+                            theme_text_color: "Secondary"
+                            font_style: "Caption"
+
+                        AsyncImage:
+                            source: root.avatar_url
+                            size_hint_y: None
+                            height: dp(100)
+                            allow_stretch: True
+                            keep_ratio: True
 
                     BoxLayout:
                         size_hint_y: None
@@ -64,19 +124,15 @@
                         spacing: 10
 
                         MDRaisedButton:
-                            id: edit_button
                             text: "Редактировать" if not root.edit_mode else "Отменить"
-                            on_release:
-                                root.toggle_edit_mode() if not root.edit_mode else root.toggle_edit_mode()
+                            on_release: root.toggle_edit_mode()
                             size_hint_x: 0.5 if root.edit_mode else 1.0
                             opacity: 1 if not root.edit_mode else 0
                             disabled: root.loading or root.edit_mode
 
                         MDRaisedButton:
-                            id: save_button
                             text: "Сохранить"
-                            on_release:
-                                root.save_profile()
+                            on_release: root.save_profile()
                             size_hint_x: 0.5
                             opacity: 1 if root.edit_mode else 0
                             disabled: root.loading or not root.edit_mode

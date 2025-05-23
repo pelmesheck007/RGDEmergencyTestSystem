@@ -1,9 +1,15 @@
 # app/routers/users.py
-from fastapi import APIRouter, Depends, HTTPException, status
+import os
+import shutil
+from uuid import uuid4
+
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel, EmailStr, validator
 from typing import Optional
 from sqlalchemy.orm import Session
+from starlette.responses import JSONResponse
+
 from api.dependencies import get_current_user, get_db
 from api.schemas import *
 from api.models.user import User
@@ -24,6 +30,8 @@ def create_user(data: UserCreate, db: Session = Depends(get_db), _: str = Depend
     return user_service.create_user(db, data)
 
 
+
+
 @router.get("/", response_model=List[UserOut])
 def list_users(db: Session = Depends(get_db), _: str = Depends(require_admin)):
     return user_service.get_all_users(db)
@@ -33,6 +41,24 @@ def list_users(db: Session = Depends(get_db), _: str = Depends(require_admin)):
 def get_own_profile(user=Depends(get_current_user)):
     return user
 
+@router.post("/users/me/avatar")
+async def upload_avatar(file: UploadFile = File(...), user=Depends(get_current_user), db: Session = Depends(get_db)):
+    file_ext = os.path.splitext(file.filename)[-1]
+    if file_ext.lower() not in [".jpg", ".jpeg", ".png"]:
+        return JSONResponse(status_code=400, content={"detail": "Неверный формат файла"})
+
+    filename = f"{uuid4().hex}{file_ext}"
+    file_path = f"media/avatars/{filename}"
+    os.makedirs(os.path.dirname(file_path), exist_ok=True)
+
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+
+    # обновляем пользователя
+    user.avatar_url = f"/{file_path}"
+    db.commit()
+
+    return {"avatar_url": user.avatar_url}
 
 @router.put("/me", response_model=UserOut)
 def update_own_profile(data: UserUpdate, db: Session = Depends(get_db), user=Depends(get_current_user)):
