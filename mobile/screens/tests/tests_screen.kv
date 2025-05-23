@@ -1,0 +1,59 @@
+# tests_screen.kv
+<TestsScreen>:
+    name: 'tests'
+
+    MDFloatLayout:
+        md_bg_color: app.rjd_light_red
+
+        MDCard:
+            size_hint: .9, .88
+            pos_hint: {"center_x": .5, "top": .95}
+            elevation: 2
+            padding: [20, 15, 20, 15]
+            spacing: 12
+            orientation: "vertical"
+            md_bg_color: app.rjd_white
+            radius: [12]
+
+            MDTopAppBar:
+                id: menu_button
+                title: root.screen_title
+                left_action_items: [["menu", lambda x: root.open_menu()]]
+                right_action_items: [["arrow-left", lambda x: root.back_to_previous()]]
+                elevation: 2
+                md_bg_color: app.rjd_dark_red
+                specific_text_color: app.rjd_white
+                font_style: "H6"
+                pos_hint: {"top": 1}
+                size_hint_y: None
+                height: dp(56)
+
+            ScrollView:
+                bar_width: dp(4)
+                bar_color: app.rjd_dark_red
+
+                BoxLayout:
+                    id: tests_container
+                    orientation: 'vertical'
+                    size_hint_y: None
+                    height: self.minimum_height
+                    padding: [10, 10, 10, 20]
+                    spacing: 10
+
+                    MDSpinner:
+                        id: loading_spinner
+                        size_hint: None, None
+                        size: dp(46), dp(46)
+                        pos_hint: {'center_x': 0.5}
+                        active: root.loading
+                        color: app.rjd_dark_red
+
+                    MDLabel:
+                        text: "Доступные тесты"
+                        font_style: "H5"
+                        halign: "center"
+                        size_hint_y: None
+                        height: self.texture_size[1]
+                        padding: [0, 10, 0, 20]
+                        theme_text_color: "Custom"
+                        text_color: app.rjd_dark_red

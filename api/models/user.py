@@ -1,7 +1,10 @@
 import uuid
 from enum import Enum
 from datetime import datetime
-from sqlalchemy import Column, String, Text, Boolean, DateTime, Integer, ForeignKey, Enum as SQLEnum
+from sqlalchemy import (
+    Column, String, Text, Boolean, DateTime, Integer,
+    ForeignKey, Enum as SQLEnum
+)
 from sqlalchemy.orm import relationship
 from .base import Base
 
@@ -12,31 +15,6 @@ class UserRole(str, Enum):
     STUDENT = "student"
 
 
-class User(Base):
-    __tablename__ = 'users'
-
-    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    username = Column(String(256), nullable=False, unique=True)
-    email = Column(String(256), unique=True)
-    password_hash = Column(Text, nullable=False)
-    role = Column(SQLEnum(UserRole), nullable=False, default=UserRole.STUDENT)
-    is_active = Column(Boolean, default=True)
-    registration_date = Column(DateTime, default=datetime.utcnow)
-
-    # Профиль
-    full_name = Column(String(256))
-    avatar_url = Column(String(512))
-
-    # Группы обучения (многие-ко-многим)
-    groups = relationship("StudyGroupMember", back_populates="user")
-
-    # Учебный прогресс (опционально)
-    progress = relationship("UserProgress", back_populates="user", uselist=False)
-
-    # Игровые данные (опционально)
-    game_data = relationship("UserGameData", back_populates="user", uselist=False)
-
-
 class StudyGroup(Base):
     __tablename__ = 'study_groups'
 
@@ -45,11 +23,86 @@ class StudyGroup(Base):
     description = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    # Участники группы
     members = relationship("StudyGroupMember", back_populates="group")
+    # courses = relationship("GroupCourse", back_populates="group")  # если нужно
 
-    # Курсы группы
-    #courses = relationship("GroupCourse", back_populates="group")
+
+class User(Base):
+    __tablename__ = 'users'
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    username = Column(String(256), nullable=False, unique=True)
+    fio = Column(String(256), nullable=False)
+    email = Column(String(256), unique=True)
+    hashed_password = Column(String, nullable=False)
+    role = Column(SQLEnum(UserRole), nullable=False, default=UserRole.STUDENT)
+    is_active = Column(Boolean, default=True)
+    registration_date = Column(DateTime, default=datetime.utcnow)
+    full_name = Column(String(256))
+    avatar_url = Column(String(512))
+
+    progress = relationship("UserProgress", back_populates="user", uselist=False)
+    game_data = relationship("UserGameData", back_populates="user", uselist=False)
+    groups = relationship("StudyGroupMember", back_populates="user")
+    test_answers = relationship("TestAnswer", back_populates="student", cascade="all, delete-orphan")
+
+    # Эти связи добавляются через configure_user_relationships()
+    # created_tasks = relationship("Task", back_populates="creator")
+    # task_answers = relationship("TaskAnswer", back_populates="student")
+
+
+def configure_user_relationships():
+    from .task import Task, TaskAnswer
+    from .test import Test
+    from .learning import LearningMaterial, MaterialProgress, MaterialRating
+
+    # Задания
+    User.created_tasks = relationship("Task", back_populates="creator")
+    User.task_answers = relationship("TaskAnswer", back_populates="student")
+
+    # Тесты
+    User.created_tests = relationship(
+        "Test",
+        back_populates="creator",
+        foreign_keys=[Test.creator_id]
+    )
+
+    User.authored_tests = relationship(
+        "Test",
+        back_populates="author",
+        foreign_keys=[Test.author_id]
+    )
+
+    User.assigned_tests = relationship(
+        "Test",
+        back_populates="student",
+        foreign_keys=[Test.student_id]
+    )
+
+    # Материалы
+    User.authored_materials = relationship(
+        "LearningMaterial",
+        back_populates="author",
+        foreign_keys=[LearningMaterial.author_id]
+    )
+
+    User.approved_materials = relationship(
+        "LearningMaterial",
+        back_populates="approver",
+        foreign_keys=[LearningMaterial.approver_id]
+    )
+
+    User.material_progress = relationship(
+        "MaterialProgress",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
+
+    User.material_ratings = relationship(
+        "MaterialRating",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
 
 
 class StudyGroupMember(Base):

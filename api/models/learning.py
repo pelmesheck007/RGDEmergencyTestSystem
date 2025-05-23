@@ -1,156 +1,88 @@
-
-from datetime import datetime
-from sqlalchemy import Column, Integer, String, Boolean, Float, DateTime, ForeignKey, Text, JSON
-from sqlalchemy.orm import relationship, declarative_base
-import uuid
-
 from .base import Base
-import uuid
-from datetime import datetime
-from enum import Enum
-from sqlalchemy import Column, String, Text, Boolean, DateTime, Integer, ForeignKey, Float
+from sqlalchemy import (
+    Column, String, Text, Integer, Boolean, DateTime,
+    ForeignKey, Float
+)
 from sqlalchemy.orm import relationship
-from .base import Base
+from datetime import datetime
+import uuid
+
 
 def generate_uuid():
     return str(uuid.uuid4())
 
-class TaskInteractionType(Enum):
-    SINGLE_ANSWER = 1
-    MULTIPLE_ANSWER = 2
-    TEXT_ANSWER = 3
-    # Add more types as needed
 
-class TestType(Enum):
-    TRAINING = 0
-    CERTIFICATION = 1
-
-class Task(Base):
-    __tablename__ = 'tasks'
+class MaterialCategory(Base):
+    __tablename__ = 'material_categories'
 
     id = Column(String, primary_key=True, default=generate_uuid)
-    question = Column(Text, nullable=False)
-    question_details = Column(Text)
-    interaction_type = Column(Integer, nullable=False)  # Using TaskInteractionType enum values
-    creator_id = Column(String, ForeignKey('users.id'))
-    created_date = Column(DateTime, default=datetime.utcnow)
-    modified_date = Column(DateTime)
-    difficulty_level = Column(Integer, default=1)
-    count_variables = Column(Integer, default=0)
-    is_active = Column(Boolean, default=True)
-    time_limit = Column(Integer)  # in seconds
-
-    # Relationships
-    creator = relationship("User")
-    variable_answers = relationship("VariableAnswer", back_populates="task", cascade="all, delete-orphan")
-    theme_associations = relationship("TaskThemeTask", back_populates="task")
-    test_associations = relationship("TestTask", back_populates="task")
-    answers = relationship("TaskAnswer", back_populates="task")
-
-class VariableAnswer(Base):
-    __tablename__ = 'variable_answers'
-
-    id = Column(String, primary_key=True, default=generate_uuid)
-    string_answer = Column(Text, nullable=False)
-    truthful = Column(Boolean, nullable=False)
-    task_id = Column(String, ForeignKey('tasks.id'), nullable=False)
-    order_number = Column(Integer, default=0)
-    explanation = Column(Text)
-
-    # Relationships
-    task = relationship("Task", back_populates="variable_answers")
-    selected_in_answers = relationship("TaskAnswerVariableAnswer", back_populates="variable_answer")
-
-class Test(Base):
-    __tablename__ = 'tests'
-
-    id = Column(String, primary_key=True, default=generate_uuid)
-    test_name = Column(String(256), nullable=False)
+    name = Column(String(256), nullable=False)
     description = Column(Text)
-    creator_id = Column(String, ForeignKey('users.id'))
-    creation_time = Column(DateTime, default=datetime.utcnow)
-    modified_time = Column(DateTime)
-    student_id = Column(String, ForeignKey('users.id'))
-    time_limit = Column(Integer)  # total time in minutes
-    passing_score = Column(Float)
-    test_type = Column(Integer, default=TestType.TRAINING.value)
-    is_random_order = Column(Boolean, default=False)
-    is_active = Column(Boolean, default=True)
-    attempts_limit = Column(Integer)
-
-    # Relationships
-    creator = relationship("User", foreign_keys=[creator_id])
-    student = relationship("User", foreign_keys=[student_id])
-    tasks_associations = relationship("TestTask", back_populates="test", cascade="all, delete-orphan")
-    test_answers = relationship("TestAnswer", back_populates="test")
-
-class TestTask(Base):
-    __tablename__ = 'test_tasks'
-
-    test_id = Column(String, ForeignKey('tests.id'), primary_key=True)
-    task_id = Column(String, ForeignKey('tasks.id'), primary_key=True)
+    parent_category_id = Column(String, ForeignKey('material_categories.id'))
+    created_date = Column(DateTime, default=datetime.utcnow)
     order_number = Column(Integer, default=0)
-    score_weight = Column(Float, default=1.0)
+    is_active = Column(Boolean, default=True)
 
-    # Relationships
-    test = relationship("Test", back_populates="tasks_associations")
-    task = relationship("Task", back_populates="test_associations")
+    parent_category = relationship("MaterialCategory", remote_side=[id], back_populates="child_categories")
+    child_categories = relationship("MaterialCategory", back_populates="parent_category", cascade="all, delete-orphan")
+    learning_materials = relationship("LearningMaterial", back_populates="category", cascade="all, delete-orphan")
 
-class TestAnswer(Base):
-    __tablename__ = 'test_answers'
 
-    id = Column(String, primary_key=True, default=generate_uuid)
-    student_id = Column(String, ForeignKey('users.id'), nullable=False)
-    test_id = Column(String, ForeignKey('tests.id'), nullable=False)
-    start_datetime = Column(DateTime, default=datetime.utcnow)
-    end_datetime = Column(DateTime)
-    passing_datetime = Column(DateTime)
-    score = Column(Float, nullable=False)
-    max_possible_score = Column(Float, nullable=False)
-    is_passed = Column(Boolean)
-    attempt_number = Column(Integer, default=1)
-    time_spent = Column(Integer)  # in seconds
-
-    # Relationships
-    student = relationship("User")
-    test = relationship("Test", back_populates="test_answers")
-    task_answers = relationship("TaskAnswer", back_populates="test_answer", cascade="all, delete-orphan")
-
-class TaskAnswer(Base):
-    __tablename__ = 'task_answers'
+class LearningMaterial(Base):
+    __tablename__ = 'learning_materials'
 
     id = Column(String, primary_key=True, default=generate_uuid)
-    student_id = Column(String, ForeignKey('users.id'), nullable=False)
-    task_id = Column(String, ForeignKey('tasks.id'), nullable=False)
-    test_answer_id = Column(String, ForeignKey('test_answers.id'), nullable=False)
-    string_answer = Column(Text)
-    score = Column(Float)
-    is_correct = Column(Boolean)
-    time_spent = Column(Integer)  # in seconds
-    answer_date = Column(DateTime, default=datetime.utcnow)
+    title = Column(String(256), nullable=False)
+    description = Column(Text)
+    content_type = Column(Integer, nullable=False)  # 1=text, 2=video, 3=PDF, 4=presentation
+    content_url = Column(Text)
+    text_content = Column(Text)
+    thumbnail_url = Column(Text)
+    upload_date = Column(DateTime, default=datetime.utcnow)
+    modified_date = Column(DateTime)
+    author_id = Column(String, ForeignKey('users.id'))
+    category_id = Column(String, ForeignKey('material_categories.id'))
+    is_published = Column(Boolean, default=False)
+    is_approved = Column(Boolean, default=False)
+    approver_id = Column(String, ForeignKey('users.id'))
+    approval_date = Column(DateTime)
+    view_count = Column(Integer, default=0)
+    duration = Column(Integer)  # in minutes (for video)
 
-    # Relationships
-    student = relationship("User")
-    task = relationship("Task", back_populates="answers")
-    test_answer = relationship("TestAnswer", back_populates="task_answers")
-    selected_variable_answers = relationship("TaskAnswerVariableAnswer", back_populates="task_answer", cascade="all, delete-orphan")
+    author = relationship("User", back_populates="authored_materials", foreign_keys=[author_id])
+    approver = relationship("User", back_populates="approved_materials", foreign_keys=[approver_id])
+    category = relationship("MaterialCategory", back_populates="learning_materials")
+    theme_tasks = relationship("LearningMaterialThemeTask", back_populates="learning_material", cascade="all, delete-orphan")
+    progress_records = relationship("MaterialProgress", back_populates="material", cascade="all, delete-orphan")
+    ratings = relationship("MaterialRating", back_populates="material", cascade="all, delete-orphan")
 
-class TaskAnswerVariableAnswer(Base):
-    __tablename__ = 'task_answer_variable_answers'
+class MaterialProgress(Base):
+    __tablename__ = 'material_progress'
 
-    task_answer_id = Column(String, ForeignKey('task_answers.id'), primary_key=True)
-    variable_answer_id = Column(String, ForeignKey('variable_answers.id'), primary_key=True)
+    id = Column(String, primary_key=True, default=generate_uuid)
+    user_id = Column(String, ForeignKey('users.id'), nullable=False)
+    material_id = Column(String, ForeignKey('learning_materials.id'), nullable=False)
+    progress = Column(Float, default=0)
+    last_accessed = Column(DateTime, default=datetime.utcnow)
+    is_completed = Column(Boolean, default=False)
+    completion_date = Column(DateTime)
+    time_spent = Column(Integer, default=0)  # in seconds
 
-    # Relationships
-    task_answer = relationship("TaskAnswer", back_populates="selected_variable_answers")
-    variable_answer = relationship("VariableAnswer", back_populates="selected_in_answers")
+    user = relationship("User", back_populates="material_progress")
+    material = relationship("LearningMaterial", back_populates="progress_records")
 
-class TaskThemeTask(Base):
-    __tablename__ = 'task_theme_tasks'
 
-    task_id = Column(String, ForeignKey('tasks.id'), primary_key=True)
-    theme_task_id = Column(String, ForeignKey('theme_tasks.id'), primary_key=True)
+class MaterialRating(Base):
+    __tablename__ = 'material_ratings'
 
-    # Relationships
-    task = relationship("Task", back_populates="theme_associations")
-    theme_task = relationship("ThemeTask", back_populates="task_associations")
+    id = Column(String, primary_key=True, default=generate_uuid)
+    user_id = Column(String, ForeignKey('users.id'), nullable=False)
+    material_id = Column(String, ForeignKey('learning_materials.id'), nullable=False)
+    rating = Column(Integer, nullable=False)
+    review = Column(Text)
+    review_date = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="material_ratings")
+    material = relationship("LearningMaterial", back_populates="ratings")
+
+

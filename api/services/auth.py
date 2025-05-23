@@ -4,7 +4,7 @@ import jwt
 from fastapi import HTTPException, status
 
 # Конфигурация
-SECRET_KEY = "your-secret-key"  # Замените на надежный ключ в продакшене!
+SECRET_KEY = "xzxzxz"  # Замените на надежный ключ в продакшене!
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 

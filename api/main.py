@@ -4,10 +4,13 @@ from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from api.models.user import User
-from api.services.auth import get_password_hash, verify_password
-from database import engine, SessionLocal, Base
+from api.models.task import Task
+from api.models.test import Test, TestAnswer
+from database import engine, SessionLocal, Base, get_db
 import uvicorn
-
+from auth import create_access_token, get_password_hash, verify_password, get_user_id_from_token
+from fastapi import Request
+from api.schemas.user import *
 app = FastAPI()
 
 # Настройка CORS
@@ -21,70 +24,105 @@ app.add_middleware(
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
-
 class UserLogin(BaseModel):
     username: str
     password: str
 
 
-# Dependency для получения сессии БД
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
 @app.on_event("startup")
-def on_startup():
+async def startup():
+    from .models.user import configure_user_relationships
+    configure_user_relationships()
+
     Base.metadata.create_all(bind=engine)
-    print("Таблицы созданы:", Base.metadata.tables.keys())
 
     # Загружаем тестовые данные
-    db: Session = next(get_db())
+    from .database import SessionLocal
+    from .scripts.init_db import create_test_data
+
+    db = SessionLocal()
     try:
-        from scripts.init_db import create_test_data
         create_test_data(db)
+        print("✅ Тестовые данные успешно загружены")
     except Exception as e:
-        print(f"Ошибка загрузки тестовых данных: {e}")
+        print(f"❌ Ошибка загрузки тестовых данных: {e}")
     finally:
         db.close()
-
-
-@app.post("/auth/login", response_model=dict)
-async def login(user: UserLogin, db: Session = Depends(get_db)):
-    # Ищем пользователя в базе данных
-    db_user = db.query(User).filter(User.username == user.username).first()
-
-    if not db_user:
-        raise HTTPException(status_code=400, detail="Неверный логин")
-
-    if not verify_password(user.password, db_user.password_hash):
-        raise HTTPException(status_code=400, detail="Неверный пароль")
-
-    if not db_user.is_active:
-        raise HTTPException(status_code=400, detail="Пользователь неактивен")
-
-    return {
-        "access_token": "generated_jwt_token_here",  # Замените на реальную генерацию JWT
-        "token_type": "bearer",
-        "user": {
-            "username": db_user.username,
-            "role": db_user.role.value,  # Для Enum
-            "full_name": db_user.full_name,
-            "email": db_user.email
-        }
-    }
-
 
 @app.get("/test-users")
 def get_test_users(db: Session = Depends(get_db)):
     users = db.query(User).limit(5).all()
-    return {"users": [{"username": u.username, "email": u.email} for u in users]}
+    return {"users": [{"username": u.username} for u in users]}
 
 
 
+@app.post("/auth/register", response_model=UserOut)
+def register(user: UserCreate, db: Session = Depends(get_db)):
+    if db.query(User).filter(User.username == user.username).first():
+        raise HTTPException(status_code=400, detail="Username already exists")
+    new_user = User(
+        username=user.username,
+        full_name=user.full_name,
+        hashed_password=get_password_hash(user.password)
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+    return new_user
+
+@app.post("/auth/login")
+def login(user: UserLogin, db: Session = Depends(get_db)):
+    db_user = db.query(User).filter(User.username == user.username).first()
+    if not db_user or not verify_password(user.password, db_user.hashed_password):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    access_token = create_access_token(data={"sub": db_user.id})
+
+    return {
+        "access_token": access_token,
+        "user": UserOut.from_orm(db_user)
+    }
+
+@app.get("/users/me", response_model=UserOut)
+def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    user_id = get_user_id_from_token(token)
+    user = db.query(User).get(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+@app.put("/users/me", response_model=UserOut)
+def update_me(data: UserUpdate, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    user_id = get_user_id_from_token(token)
+    user = db.query(User).get(user_id)
+    if data.full_name:
+        user.full_name = data.full_name
+    if data.password:
+        user.hashed_password = get_password_hash(data.password)
+    db.commit()
+    db.refresh(user)
+    return user
+
+@app.delete("/users/me")
+def delete_me(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    user_id = get_user_id_from_token(token)
+    user = db.query(User).get(user_id)
+    db.delete(user)
+    db.commit()
+    return {"detail": "User deleted"}
+
+@app.delete("/admin/users/{user_id}")
+def delete_user_as_admin(user_id: str, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    admin_id = get_user_id_from_token(token)
+    admin = db.query(User).get(admin_id)
+    if admin.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin privileges required")
+    user = db.query(User).get(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    db.delete(user)
+    db.commit()
+    return {"detail": "User deleted by admin"}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="localhost", port=8000)

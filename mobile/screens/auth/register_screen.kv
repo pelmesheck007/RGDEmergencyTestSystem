@@ -1,6 +1,3 @@
-
-
-
 <RegisterScreen>:
     name: 'register'
 
@@ -26,6 +23,7 @@
                 text_color: app.rjd_dark_red
 
             MDTextField:
+                id: fio
                 hint_text: "ФИО"
                 size_hint_x: .9
                 pos_hint: {"center_x": .5}
@@ -34,6 +32,7 @@
                 line_color_focus: app.rjd_dark_red
 
             MDTextField:
+                id: username
                 hint_text: "Табельный номер"
                 size_hint_x: .9
                 pos_hint: {"center_x": .5}
@@ -42,6 +41,7 @@
                 line_color_focus: app.rjd_dark_red
 
             MDTextField:
+                id: password
                 hint_text: "Пароль"
                 size_hint_x: .9
                 pos_hint: {"center_x": .5}
@@ -51,6 +51,7 @@
                 line_color_focus: app.rjd_dark_red
 
             MDTextField:
+                id: password_confirm
                 hint_text: "Подтвердите пароль"
                 size_hint_x: .9
                 pos_hint: {"center_x": .5}
@@ -66,6 +67,7 @@
                 md_bg_color: app.rjd_dark_red
                 font_style: "Button"
                 bold: True
+                on_release: root.register()  # <-- Добавим вызов функции
 
             MDTextButton:
                 text: "Уже есть аккаунт? Войти"
