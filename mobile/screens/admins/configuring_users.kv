@@ -1,0 +1,30 @@
+<ConfiguringUsersScreen>:
+    MDFloatLayout:
+        md_bg_color: app.theme_cls.backgroundColor
+
+        MDCard:
+            size_hint: .9, .88
+            pos_hint: {"center_x": .5, "top": .95}
+            elevation: 2
+            padding: [20, 15, 20, 15]
+            md_bg_color: app.theme_cls.bg_normal
+            radius: [12]
+
+            MDTopAppBar:
+                id: menu_button
+                title: root.screen_title
+                left_action_items: [["menu", lambda x: root.open_menu()]]
+                right_action_items: [["logout", lambda x: root.logout()]]
+                elevation: 2
+                md_bg_color: app.rjd_dark_red
+                specific_text_color: app.theme_cls.textColor
+                font_style: "H6"
+                pos_hint: {"top": 1}
+                size_hint_y: None
+                height: dp(56)
+
+            BoxLayout:
+                id: content
+                orientation: 'vertical'
+                padding: [0, 10, 0, 0]
+                spacing: 15

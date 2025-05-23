@@ -2,6 +2,8 @@
 #:import RegisterScreen screens.auth.register_screen.RegisterScreen
 #:import MainScreen screens.main.main_screen.MainScreen
 #:import ProfileScreen screens.menu.profile_screen.ProfileScreen
+#:import ConfiguringUsersScreen screens.admins.configuring_users.ConfiguringUsersScreen
+#:import SettingsScreen screens.admins.settings_screen.SettingsScreen
 
 MDScreenManager:
     id: screen_manager
@@ -10,24 +12,43 @@ MDScreenManager:
 
     LoginScreen:
         name: 'login'
-        id: login_screen
-        on_enter: root.current_screen = 'login'
+        on_enter: app.current_screen = 'login'
 
     RegisterScreen:
         name: 'register'
-        on_enter: root.current_screen = 'register'
-
-
+        on_enter: app.current_screen = 'register'
 
     MainScreen:
         name: 'main'
-        id: main_screen
         on_enter:
-            root.current_screen = 'main'
+            app.current_screen = 'main'
             root.get_screen('main').on_screen_enter()
         on_leave:
             root.get_screen('main').on_screen_leave()
 
+    ProfileScreen:
+        name: 'profile'
+        on_enter:
+            app.current_screen = 'profile'
+            root.get_screen('profile').on_enter()
+        on_leave:
+            root.get_screen('profile').on_leave()
+
+    ConfiguringUsersScreen:
+        name: 'manage_users'
+        on_enter:
+            app.current_screen = 'manage_users'
+            root.get_screen('manage_users').on_screen_enter()
+        on_leave:
+            root.get_screen('manage_users').on_screen_leave()
+
+    SettingsScreen:
+        name: 'settings'
+        on_enter:
+            app.current_screen = 'settings'
+            root.get_screen('settings').on_screen_enter()
+        on_leave:
+            root.get_screen('settings').on_screen_leave()
 # Подключаем остальные KV-разметки из отдельных файлов
 #:include screens/auth/login_screen.kv
 #:include screens/auth/register_screen.kv

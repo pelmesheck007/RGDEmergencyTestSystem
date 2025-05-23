@@ -41,6 +41,16 @@ def on_startup():
     Base.metadata.create_all(bind=engine)
     print("Таблицы созданы:", Base.metadata.tables.keys())
 
+    # Загружаем тестовые данные
+    db: Session = next(get_db())
+    try:
+        from scripts.init_db import create_test_data
+        create_test_data(db)
+    except Exception as e:
+        print(f"Ошибка загрузки тестовых данных: {e}")
+    finally:
+        db.close()
+
 
 @app.post("/auth/login", response_model=dict)
 async def login(user: UserLogin, db: Session = Depends(get_db)):
@@ -74,5 +84,7 @@ def get_test_users(db: Session = Depends(get_db)):
     return {"users": [{"username": u.username, "email": u.email} for u in users]}
 
 
+
+
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="localhost", port=8000)

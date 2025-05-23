@@ -8,6 +8,7 @@ from .models.user import User
 from .services.auth import verify_token  # Теперь этот импорт будет работать
 
 
+
 async def get_current_user(
         authorization: str = Header(default=None),
         db: AsyncSession = Depends(get_db),

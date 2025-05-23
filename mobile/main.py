@@ -10,26 +10,28 @@ from datetime import datetime
 import logging
 from pathlib import Path
 from datetime import datetime
-
+from kivy.utils import get_color_from_hex
 
 class SafeScreenManager(ScreenManager):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.transition = SlideTransition()  # Явная инициализация перехода
+
 class RZDLoginApp(MDApp):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        # Базовый URL вашего API
+        self.api_url = "http://localhost:8000"  # Замените на реальный URL
+        self.token = None  # Токен авторизации
+        self.user_data = None  # Данные пользователя
+        self.rjd_dark_red = [0.8, 0, 0, 1]  # Цвета РЖД
+        self.rjd_light_red = [1, 0.92, 0.93, 1]
+        self.rjd_white = [1, 1, 1, 1]
+
     def build(self):
         self.theme_cls.primary_palette = "Red"
         self.theme_cls.theme_style = "Light"
         self.setup_logging()
-
-        # Цвета РЖД
-        self.rjd_dark_red = get_color_from_hex("#CC0000")
-        self.rjd_light_red = get_color_from_hex("#FFEBEE")
-        self.rjd_white = get_color_from_hex("#FFFFFF")
-
-        # Токен и данные пользователя
-        self.token = None
-        self.user_data = None
         current_screen = StringProperty('login')
 
         # Загрузка KV файла
@@ -102,6 +104,19 @@ class RZDLoginApp(MDApp):
 
     def on_start(self):
         print("Доступные экраны:", list(self.root.screen_names))
+
+    def show_error_dialog(self, title, text):
+        from kivymd.uix.dialog import MDDialog
+        MDDialog(
+            title=title,
+            text=text,
+            size_hint=(0.8, None)
+        ).open()
+
+    def update_user_data(self, new_data):
+        """Обновление данных пользователя"""
+        if hasattr(self, 'user_data'):
+            self.user_data.update(new_data)
 
 
 if __name__ == "__main__":

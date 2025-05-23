@@ -1,105 +1,82 @@
 <ProfileScreen>:
-    name: 'profile'
-
     MDFloatLayout:
         md_bg_color: app.rjd_light_red
 
         MDCard:
-            size_hint: .9, .9
+            size_hint: .9, .88
             pos_hint: {"center_x": .5, "top": .95}
-            elevation: 8
+            elevation: 2
             padding: [20, 15, 20, 15]
-            spacing: 15
-            orientation: "vertical"
             md_bg_color: app.rjd_white
             radius: [12]
 
             MDTopAppBar:
                 id: menu_button
                 title: root.screen_title
-                left_action_items: [["logout", lambda *args: root.logout()]]
+                left_action_items: [["menu", lambda x: root.open_menu()]]
+                right_action_items: [["logout", lambda x: root.logout()]]
                 elevation: 2
                 md_bg_color: app.rjd_dark_red
-                specific_text_color: app.rjd_white
+                specific_text_color: [1, 1, 1, 1]
                 font_style: "H6"
                 pos_hint: {"top": 1}
                 size_hint_y: None
                 height: dp(56)
 
             ScrollView:
-                bar_width: dp(4)
-                bar_color: app.rjd_dark_red
-
                 BoxLayout:
                     orientation: 'vertical'
                     size_hint_y: None
                     height: self.minimum_height
-                    padding: [0, 10, 0, 20]
+                    padding: [20, 20, 20, 20]
                     spacing: 20
 
-                    MDLabel:
-                        text: "Основная информация"
-                        font_style: "H6"
-                        halign: "center"
+                    BoxLayout:
+                        orientation: 'vertical'
                         size_hint_y: None
-                        height: self.texture_size[1]
-                        theme_text_color: "Custom"
-                        text_color: app.rjd_dark_red
+                        height: self.minimum_height
+                        spacing: 10
 
-                    MDTextField:
-                        id: username_input
-                        hint_text: "Логин"
-                        text: root.username
-                        readonly: True
-                        mode: "rectangle"
-                        size_hint_x: 0.8
-                        pos_hint: {"center_x": 0.5}
+                        MDTextField:
+                            id: username_field
+                            hint_text: "Логин"
+                            text: root.username
+                            disabled: not root.edit_mode
+                            on_text: root.username = self.text
 
-                    MDTextField:
-                        id: full_name_input
-                        hint_text: "ФИО"
-                        text: root.full_name if not root.edit_mode else ""
-                        readonly: not root.edit_mode
-                        mode: "rectangle"
-                        size_hint_x: 0.8
-                        pos_hint: {"center_x": 0.5}
-                        required: True
+                        MDTextField:
+                            id: full_name_field
+                            hint_text: "ФИО"
+                            text: root.full_name
+                            disabled: not root.edit_mode
+                            on_text: root.full_name = self.text
 
-                    MDTextField:
-                        id: email_input
-                        hint_text: "Email"
-                        text: root.email if not root.edit_mode else ""
-                        readonly: not root.edit_mode
-                        mode: "rectangle"
-                        size_hint_x: 0.8
-                        pos_hint: {"center_x": 0.5}
+                        MDTextField:
+                            id: email_field
+                            hint_text: "Email"
+                            text: root.email
+                            disabled: not root.edit_mode
+                            on_text: root.email = self.text
 
-                    MDTextField:
-                        id: role_input
-                        hint_text: "Роль"
-                        text: root.role
-                        readonly: True
-                        mode: "rectangle"
-                        size_hint_x: 0.8
-                        pos_hint: {"center_x": 0.5}
-
-                    Widget:
+                    BoxLayout:
                         size_hint_y: None
-                        height: dp(20)
+                        height: dp(50)
+                        spacing: 10
 
-                    MDRaisedButton:
-                        text: "СОХРАНИТЬ ИЗМЕНЕНИЯ"
-                        size_hint_x: 0.6
-                        pos_hint: {"center_x": 0.5}
-                        md_bg_color: app.rjd_dark_red
-                        font_style: "Button"
-                        on_release: root.save_profile()
-                        disabled: not root.edit_mode
-                        opacity: 1 if root.edit_mode else 0
+                        MDRaisedButton:
+                            id: edit_button
+                            text: "Редактировать" if not root.edit_mode else "Отменить"
+                            on_release:
+                                root.toggle_edit_mode() if not root.edit_mode else root.toggle_edit_mode()
+                            size_hint_x: 0.5 if root.edit_mode else 1.0
+                            opacity: 1 if not root.edit_mode else 0
+                            disabled: root.loading or root.edit_mode
 
-            MDSnackbar:
-                id: snackbar
-                text: ""
-                pos_hint: {"center_x": 0.5}
-                size_hint_x: 0.8
-                md_bg_color: app.rjd_dark_red
+                        MDRaisedButton:
+                            id: save_button
+                            text: "Сохранить"
+                            on_release:
+                                root.save_profile()
+                            size_hint_x: 0.5
+                            opacity: 1 if root.edit_mode else 0
+                            disabled: root.loading or not root.edit_mode
