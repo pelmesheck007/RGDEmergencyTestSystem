@@ -41,11 +41,20 @@
                         height: self.minimum_height
                         spacing: 10
 
+                        MDLabel:
+                            text: f"ID пользователя: {root.user_id}"
+                            theme_text_color: "Secondary"
+                            font_style: "Caption"
+
                         MDTextField:
-                            hint_text: "Логин"
+                            hint_text: "Имя пользователя"
                             text: root.username
-                            disabled: not root.edit_mode
-                            on_text: root.username = self.text
+                            disabled: True
+
+                        MDTextField:
+                            hint_text: "Роль"
+                            text: root.readable_role
+                            disabled: True
 
                         MDTextField:
                             hint_text: "ФИО"
@@ -59,11 +68,6 @@
                             disabled: not root.edit_mode
                             on_text: root.email = self.text
 
-                        MDTextField:
-                            hint_text: "Роль"
-                            text: root.role
-                            disabled: not root.edit_mode
-                            on_text: root.role = self.text
 
                         BoxLayout:
                             orientation: "horizontal"

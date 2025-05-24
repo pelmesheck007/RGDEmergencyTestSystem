@@ -10,13 +10,14 @@ from api.services import test_service
 
 router = APIRouter(prefix="/tests", tags=["Tests"])
 
+@router.get("/", response_model=List[TestOut])
+def list_tests(db: Session = Depends(get_db)):
+    return test_service.get_tests(db)
+
 @router.post("/", response_model=TestOut)
 def create_test(data: TestCreate, db: Session = Depends(get_db)):
     return test_service.create_test(db, **data.dict())
 
-@router.get("/", response_model=List[TestOut])
-def list_tests(db: Session = Depends(get_db)):
-    return test_service.get_tests(db)
 
 @router.get("/{test_id}", response_model=TestOut)
 def get_test(test_id: str, db: Session = Depends(get_db)):

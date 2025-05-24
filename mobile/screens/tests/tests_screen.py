@@ -1,5 +1,5 @@
 # tests_screen.py
-from kivy.properties import ListProperty, ObjectProperty, StringProperty, partial
+from kivy.properties import ListProperty, ObjectProperty, StringProperty, partial, BooleanProperty
 from kivy.clock import Clock
 from kivy.network.urlrequest import UrlRequest
 import json
@@ -29,6 +29,8 @@ class TestsScreen(BaseScreen):
     selected_test = ObjectProperty(None, allownone=True)
     dialog = ObjectProperty(None, allownone=True)
     no_tests_message = StringProperty("Загрузка тестов...")
+    can_create_test = BooleanProperty(False)
+
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -38,7 +40,14 @@ class TestsScreen(BaseScreen):
     def on_pre_enter(self, *args):
         """Вызывается перед открытием экрана"""
         super().on_pre_enter(*args)
+
+        # Показываем кнопку создания теста только если роль admin или teacher
+        self.can_create_test = getattr(self.app, "user_role", "") in ("admin", "teacher")
         self.load_tests()
+
+    def create_test(self, *args):
+        """Переход к созданию теста"""
+        self.manager.current = "create_test"
 
     def load_tests(self):
         """Загрузка тестов с сервера"""
@@ -61,6 +70,8 @@ class TestsScreen(BaseScreen):
             req_headers=headers,
             timeout=10
         )
+
+
 
     def on_tests_load_success(self, req, result):
         """Обработка успешной загрузки"""

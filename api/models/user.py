@@ -44,66 +44,19 @@ class User(Base):
     progress = relationship("UserProgress", back_populates="user", uselist=False)
     game_data = relationship("UserGameData", back_populates="user", uselist=False)
     groups = relationship("StudyGroupMember", back_populates="user")
-    test_answers = relationship("TestAnswer", back_populates="student", cascade="all, delete-orphan")
 
-    # Эти связи добавляются через configure_user_relationships()
-    # created_tasks = relationship("Task", back_populates="creator")
-    # task_answers = relationship("TaskAnswer", back_populates="student")
+    created_tasks = relationship("Task", back_populates="creator", foreign_keys='Task.creator_id')
+    task_answers = relationship("TaskAnswer", back_populates="student", foreign_keys='TaskAnswer.student_id')
 
+    created_tests = relationship("Test", back_populates="creator", foreign_keys='Test.creator_id')
+    authored_tests = relationship("Test", back_populates="author", foreign_keys='Test.author_id')
+    assigned_tests = relationship("Test", back_populates="student", foreign_keys='Test.student_id')
+    test_answers = relationship("TestAnswer", back_populates="student", foreign_keys='TestAnswer.student_id')
 
-def configure_user_relationships():
-    from .task import Task, TaskAnswer
-    from .test import Test
-    from .learning import LearningMaterial, MaterialProgress, MaterialRating
-
-    # Задания
-    User.created_tasks = relationship("Task", back_populates="creator")
-    User.task_answers = relationship("TaskAnswer", back_populates="student")
-
-    # Тесты
-    User.created_tests = relationship(
-        "Test",
-        back_populates="creator",
-        foreign_keys=[Test.creator_id]
-    )
-
-    User.authored_tests = relationship(
-        "Test",
-        back_populates="author",
-        foreign_keys=[Test.author_id]
-    )
-
-    User.assigned_tests = relationship(
-        "Test",
-        back_populates="student",
-        foreign_keys=[Test.student_id]
-    )
-
-    # Материалы
-    User.authored_materials = relationship(
-        "LearningMaterial",
-        back_populates="author",
-        foreign_keys=[LearningMaterial.author_id]
-    )
-
-    User.approved_materials = relationship(
-        "LearningMaterial",
-        back_populates="approver",
-        foreign_keys=[LearningMaterial.approver_id]
-    )
-
-    User.material_progress = relationship(
-        "MaterialProgress",
-        back_populates="user",
-        cascade="all, delete-orphan"
-    )
-
-    User.material_ratings = relationship(
-        "MaterialRating",
-        back_populates="user",
-        cascade="all, delete-orphan"
-    )
-
+    authored_materials = relationship("LearningMaterial", back_populates="author", foreign_keys='LearningMaterial.author_id')
+    approved_materials = relationship("LearningMaterial", back_populates="approver", foreign_keys='LearningMaterial.approver_id')
+    material_progress = relationship("MaterialProgress", back_populates="user", cascade="all, delete-orphan")
+    material_ratings = relationship("MaterialRating", back_populates="user", cascade="all, delete-orphan")
 
 class StudyGroupMember(Base):
     __tablename__ = 'study_group_members'

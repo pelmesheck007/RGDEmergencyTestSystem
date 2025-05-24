@@ -21,7 +21,7 @@ class RoleMenu:
                 self._create_menu_item("Главная", "home", "main", self._navigate_to),
                 self._create_menu_item("Профиль", "account", "profile", self._navigate_to),
                 self._create_menu_item("Тесты", "play-box", "tests", self._navigate_to),
-                self._create_menu_item("Классы", "account-group", "classes", self._navigate_to),
+                self._create_menu_item("Группы", "account-group", "groups", self._navigate_to),
                 self._create_menu_item("Статистика", "chart-line", "statistics", self._navigate_to)
             ]
 
@@ -76,10 +76,13 @@ class RoleMenu:
     def _load_screen_module(self, screen_name):
         """Динамическая загрузка модуля экрана"""
         screen_modules = {
-            'main': ('screens.main.main_screen', 'MainScreen'),
-            'profile': ('screens.menu.profile_screen', 'ProfileScreen'),
-            'manage_users': ('screens.admins.configuring_users', 'ConfiguringUsersScreen'),
-            'settings': ('screens.admins.settings_screen', 'SettingsScreen')
+             'main': ('screens.main.main_screen', 'MainScreen'),
+        'profile': ('screens.menu.profile_screen', 'ProfileScreen'),
+        'tests': ('screens.tests.tests_screen', 'TestsScreen'),
+        'groups': ('screens.groups.groups_screen', 'GroupScreen'),
+        'statistics': ('screens.statistics.statistics_screen', 'StatisticsScreen'),  # если есть
+        'configuring_users': ('screens.admins.configuring_users', 'ConfiguringUsersScreen'),
+        'settings': ('screens.admins.settings_screen', 'SettingsScreen')
         }
 
         if screen_name in screen_modules:
@@ -140,3 +143,4 @@ class RoleMenu:
         """Открытие меню"""
         if self.menu:
             self.menu.open()
+

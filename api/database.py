@@ -15,6 +15,8 @@ engine = create_engine(
     echo=True  # Логирование SQL-запросов
 )
 
+
+
 # Настройка сессии
 SessionLocal = sessionmaker(
     autocommit=False,
@@ -34,6 +36,8 @@ def get_db():
         raise
     finally:
         db.close()
+
+
 
 def create_tables():
     """Создание всех таблиц в базе данных"""

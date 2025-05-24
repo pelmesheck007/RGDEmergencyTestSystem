@@ -1,0 +1,19 @@
+<CreateGroupScreen>:
+    name: "create_group"
+    MDBoxLayout:
+        orientation: "vertical"
+        padding: dp(20)
+        spacing: dp(10)
+
+        MDTextField:
+            id: group_name
+            hint_text: "Название группы"
+
+        MDTextField:
+            id: group_description
+            hint_text: "Описание группы"
+
+        MDRaisedButton:
+            text: "Создать группу"
+            pos_hint: {"center_x": .5}
+            on_release: root.create_group()

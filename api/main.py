@@ -3,9 +3,13 @@ from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from api.models.user import User
-from api.models.task import Task
+
+from api.models import ThemeTask
+from api.models.user import User, StudyGroup, StudyGroupMember
+from api.models.task import Task, VariableAnswer
 from api.models.test import Test, TestAnswer
+from api.schemas.test import TaskCreate
+from api.schemas.theme_task import ThemeTaskOut
 from database import engine, SessionLocal, Base, get_db
 import uvicorn
 from auth import create_access_token, get_password_hash, verify_password, get_user_id_from_token
@@ -13,9 +17,14 @@ from fastapi import Request
 from sqlalchemy.exc import OperationalError
 from api.schemas.user import *
 app = FastAPI()
-
+from typing import List
 from api.routers import test
 app.include_router(test.router)  # 👈 это должно быть в main.py
+from routers import theme_router
+app.include_router(theme_router.router)
+from routers import task_router
+
+app.include_router(task_router.router)
 
 # Настройка CORS
 app.add_middleware(
@@ -28,6 +37,39 @@ app.add_middleware(
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
+from models import StudyGroup
+from schemas.group import StudyGroupOut, StudyGroupCreate, StudyGroupUpdate
+from database import get_db  # или как у тебя настроено подключение
+
+
+@app.get("/groups/", response_model=List[StudyGroupOut])
+def get_groups(db: Session = Depends(get_db)):
+    return db.query(StudyGroup).all()
+
+
+@app.post("/groups/", response_model=StudyGroupOut)
+def create_group(group_data: StudyGroupCreate, db: Session = Depends(get_db)):
+    new_group = StudyGroup(**group_data.dict())
+    db.add(new_group)
+    db.commit()
+    db.refresh(new_group)
+    return new_group
+
+
+@app.put("/groups/{group_id}", response_model=StudyGroupOut)
+def update_group(group_id: str, group_data: StudyGroupUpdate, db: Session = Depends(get_db)):
+    group = db.query(StudyGroup).filter_by(id=group_id).first()
+    if not group:
+        raise HTTPException(status_code=404, detail="Группа не найдена")
+
+    for key, value in group_data.dict(exclude_unset=True).items():
+        setattr(group, key, value)
+
+    db.commit()
+    db.refresh(group)
+    return group
+
+
 class UserLogin(BaseModel):
     username: str
     password: str
@@ -35,8 +77,6 @@ class UserLogin(BaseModel):
 
 @app.on_event("startup")
 async def startup():
-    from .models.user import configure_user_relationships
-    configure_user_relationships()
 
     Base.metadata.create_all(bind=engine)
 
@@ -108,7 +148,8 @@ def update_me(data: UserUpdate, token: str = Depends(oauth2_scheme), db: Session
     return user
 
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
+
 
 class UserUpdate(BaseModel):
     username: Optional[str]
@@ -180,6 +221,23 @@ def patch_update_me(
     db.commit()
     db.refresh(user)
     return user
+
+@app.get("/themes/", response_model=List[ThemeTaskOut])
+def get_themes(db: Session = Depends(get_db)):
+    return db.query(ThemeTask).filter(ThemeTask.is_active == True).all()
+
+
+@app.post("/tasks/")
+def create_task(task: TaskCreate, db: Session = Depends(get_db)):
+    new_task = Task(**task.dict(exclude={"variable_answers"}))
+    db.add(new_task)
+    db.flush()
+
+    for answer in task.variable_answers:
+        db.add(VariableAnswer(task_id=new_task.id, **answer.dict()))
+
+    db.commit()
+    return {"id": new_task.id}
 
 
 if __name__ == "__main__":

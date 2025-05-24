@@ -6,7 +6,11 @@
 #:import SettingsScreen screens.admins.settings_screen.SettingsScreen
 #:import TestsScreen screens.tests.tests_screen.TestsScreen
 #:import TestTakingScreen screens.tests.test_taking_screen.TestTakingScreen
-#:import CreateTestScreen screens.tests.test_taking_screen.CreateTestScreen
+#:import CreateTestScreen screens.tests.create_test_screen.CreateTestScreen
+
+#:import GroupsScreen screens.groups.groups_screen.GroupsScreen
+#:import EditGroupScreen screens.groups.edit_group_screen.EditGroupScreen
+#:import CreateGroupScreen screens.groups.create_group_screen.CreateGroupScreen
 
 MDScreenManager:
     id: screen_manager
@@ -57,7 +61,7 @@ MDScreenManager:
         name: 'tests'
         on_enter:
             app.current_screen = 'tests'
-            root.get_screen('tests').on_pre_enter()
+            #root.get_screen('tests').on_pre_enter()
         on_leave:
             root.get_screen('tests').on_leave()
 
@@ -77,10 +81,41 @@ MDScreenManager:
         on_leave:
             root.get_screen('create_test').on_leave()
 
+
+    GroupsScreen:
+        name: 'groups'
+        on_enter:
+            app.current_screen = 'groups'
+            root.get_screen('groups').on_pre_enter()
+        on_leave:
+            root.get_screen('groups').on_leave()
+
+    EditGroupScreen:
+        name: 'edit_group'
+        on_enter:
+            app.current_screen = 'edit_group'
+            root.get_screen('edit_group').on_pre_enter()
+        on_leave:
+            root.get_screen('edit_group').on_leave()
+
+    CreateGroupScreen:
+        name: 'create_group'
+        on_enter:
+            app.current_screen = 'create_group'
+            root.get_screen('create_group').on_pre_enter()
+        on_leave:
+            root.get_screen('create_group').on_leave()
+
+
 #:include screens/auth/login_screen.kv
 #:include screens/auth/register_screen.kv
 #:include screens/main/main_screen.kv
 #:include screens/menu/profile_screen.kv
+
 #:include screens/tests/tests_screen.kv
 #:include screens/tests/test_taking_screen.kv
 #:include screens/tests/create_test_screen.kv
+
+#:include screens/groups/groups_screen.kv
+#:include screens/groups/edit_group_screen.kv
+#:include screens/groups/create_group_screen.kv

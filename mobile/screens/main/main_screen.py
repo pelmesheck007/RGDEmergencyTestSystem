@@ -1,4 +1,6 @@
 import logging
+
+from kivy.app import App
 from kivy.clock import Clock
 from kivy.metrics import dp
 from kivymd.uix.menu import MDDropdownMenu
@@ -6,6 +8,7 @@ from kivymd.uix.screen import MDScreen
 from kivy.properties import StringProperty, ObjectProperty
 from kivymd.app import MDApp
 
+from mobile.screens.widgets.menu.main_menu import RoleMenu
 
 
 class MainScreen(MDScreen):
@@ -53,10 +56,11 @@ class MainScreen(MDScreen):
             self.ids.loading_spinner.active = False
 
     def open_menu(self):
-        """Открытие меню"""
-        if not self.menu:
-            self.menu = RoleMenu(caller=self.ids.menu_button, role=self.role)
-        self.menu.open()
+        role = getattr(App.get_running_app(), "user_data", {}).get("role", None)
+        if role:
+            RoleMenu(self.ids["menu_button"], role).open()
+        else:
+            self.show_error("Роль пользователя не определена.")
 
     def get_role_display(self, role):
         role_map = {

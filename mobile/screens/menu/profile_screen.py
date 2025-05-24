@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from kivy.network.urlrequest import UrlRequest
 from kivy.clock import Clock
 import json
@@ -24,8 +26,11 @@ class ProfileScreen(BaseScreen):
     avatar_url = StringProperty("")
     is_active = BooleanProperty(True)
     role = StringProperty("")
+    from datetime import datetime
 
-
+    user_id = StringProperty("")
+    fio = StringProperty("")
+    readable_role = StringProperty("")
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -39,29 +44,41 @@ class ProfileScreen(BaseScreen):
         self.screen_title = "Профиль"
 
     def _load_profile_data(self, user_data):
+        self.user_id = user_data.get('id', '')
         self.username = user_data.get('username', '')
+        self.fio = user_data.get('fio', '')
         self.full_name = user_data.get('full_name', '')
         self.email = user_data.get('email', '')
-        self.registration_date = user_data.get('registration_date', '')
-        self.avatar_url = user_data.get('avatar_url', '')
-        self.is_active = user_data.get('is_active', True)
         self.role = user_data.get('role', '')
+        self.readable_role = self._get_role_display(self.role)
+        self.registration_date = self._format_date(user_data.get('registration_date', ''))
+        self.avatar_url = user_data.get('avatar_url') or ""
+        self.is_active = user_data.get('is_active', True)
 
         self.original_data = {
             'username': self.username,
             'full_name': self.full_name,
             'email': self.email,
             'role': self.role,
+            'fio': self.fio,
             'is_active': self.is_active,
-            'registration_date': self.registration_date,  # обычно не редактируемо
+            'registration_date': self.registration_date,
             'avatar_url': self.avatar_url
         }
 
-    def toggle_edit_mode(self):
-        """Переключение режима редактирования"""
-        self.edit_mode = not self.edit_mode
-        if not self.edit_mode:
-            self._cancel_edits()
+    def _get_role_display(self, role):
+        return {
+            "admin": "Администратор",
+            "teacher": "Преподаватель",
+            "student": "Студент"
+        }.get(role, role)
+
+    def _format_date(self, iso_string):
+        try:
+            dt = datetime.fromisoformat(iso_string)
+            return dt.strftime("%d.%m.%Y %H:%M")
+        except Exception:
+            return iso_string or ""
 
     def _cancel_edits(self):
         """Отмена изменений"""
@@ -166,3 +183,8 @@ class ProfileScreen(BaseScreen):
 
         self.show_error(f"Ошибка сохранения: {error_msg}")
         self._cancel_edits()
+
+    def toggle_edit_mode(self):
+        self.edit_mode = not self.edit_mode
+        if not self.edit_mode:
+            self._cancel_edits()

@@ -1,4 +1,3 @@
-# tests_screen.kv
 <TestsScreen>:
     name: 'tests'
 
@@ -27,6 +26,18 @@
                 pos_hint: {"top": 1}
                 size_hint_y: None
                 height: dp(56)
+            # Кнопка создаётся отдельно, вне ScrollView
+            MDRaisedButton:
+                text: "Создать тест"
+                md_bg_color: app.rjd_dark_red
+                text_color: app.rjd_white
+                size_hint: None, None
+                size: dp(180), dp(48)
+                pos_hint: {"center_x": 0.5}
+                on_release: root.create_test()
+                opacity: 0 if root.can_create_test else 1
+                disabled:  root.can_create_test
+
 
             ScrollView:
                 bar_width: dp(4)
@@ -57,3 +68,4 @@
                         padding: [0, 10, 0, 20]
                         theme_text_color: "Custom"
                         text_color: app.rjd_dark_red
+

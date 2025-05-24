@@ -1,0 +1,81 @@
+<EditGroupScreen>:
+    name: "edit_group"
+
+    MDFloatLayout:
+        md_bg_color: app.rjd_light_red
+
+        MDCard:
+            size_hint: .9, .9
+            pos_hint: {"center_x": .5, "top": .95}
+            elevation: 2
+            padding: [20, 15, 20, 15]
+            spacing: 12
+            orientation: "vertical"
+            md_bg_color: app.rjd_white
+            radius: [12]
+
+            MDTopAppBar:
+                title: "Редактирование группы"
+                left_action_items: [["arrow-left", lambda x: root.go_back()]]
+
+                elevation: 2
+                md_bg_color: app.rjd_dark_red
+                specific_text_color: app.rjd_white
+                size_hint_y: None
+                height: dp(56)
+
+            ScrollView:
+                bar_width: dp(4)
+                bar_color: app.rjd_dark_red
+
+                BoxLayout:
+                    orientation: "vertical"
+                    size_hint_y: None
+                    height: self.minimum_height
+                    spacing: dp(15)
+                    padding: [0, 10, 0, 20]
+
+                    MDTextField:
+                        id: group_name
+                        hint_text: "Название группы"
+                        required: True
+
+                    MDTextField:
+                        id: group_description
+                        hint_text: "Описание"
+                        multiline: True
+
+                    MDLabel:
+                        text: "Участники"
+                        font_style: "Subtitle1"
+                        halign: "left"
+                        size_hint_y: None
+                        height: self.texture_size[1]
+
+                    ScrollView:
+                        size_hint_y: None
+                        height: dp(120)
+
+                        MDList:
+                            id: members_list
+
+                    MDTextField:
+                        id: new_member_username
+                        hint_text: "Имя пользователя для добавления"
+
+                    MDRaisedButton:
+                        text: "Добавить участника"
+                        md_bg_color: app.rjd_dark_red
+                        text_color: app.rjd_white
+                        size_hint: None, None
+                        size: dp(200), dp(40)
+                        pos_hint: {"right": 0.95}  # Правый край на 95% ширины
+                        on_release: root.add_member()
+
+
+                    MDRaisedButton:
+                        text: "Сохранить изменения"
+                        md_bg_color: app.rjd_dark_red
+                        text_color: app.rjd_white
+                        pos_hint: {"center_x": .5}
+                        on_release: root.save_changes()

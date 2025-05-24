@@ -25,10 +25,6 @@ class TestBase(BaseModel):
     author_id: Optional[str]
 
 
-class TestCreate(TestBase):
-    test_name: str  # required
-    creator_id: str
-
 
 class TestUpdate(TestBase):
     pass
@@ -50,3 +46,27 @@ class QuestionOut(BaseModel):
     id: str
     text: str
     answers: List[AnswerOut]
+
+
+class VariableAnswerCreate(BaseModel):
+    string_answer: str
+    truthful: bool
+
+
+class TaskCreate(BaseModel):
+    question: str
+    interaction_type: int
+    time_limit: int
+    difficulty_level: int
+    theme: str
+    variable_answers: List[VariableAnswerCreate]
+
+
+class TestCreate(BaseModel):
+    test_name: str
+    description: str
+    time_limit: int
+    passing_score: int
+    theme_id: str
+    attempts_limit: int
+

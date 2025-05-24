@@ -45,6 +45,9 @@ class Test(Base):
     author = relationship("User", back_populates="authored_tests", foreign_keys=[author_id])
     student = relationship("User", back_populates="assigned_tests", foreign_keys=[student_id])
 
+    theme_id = Column(String, ForeignKey('theme_tasks.id'))
+    theme_rel = relationship("ThemeTask", backref="tests")
+
 
 class TestTask(Base):
     __tablename__ = 'test_tasks'

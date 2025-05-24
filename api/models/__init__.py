@@ -3,7 +3,7 @@ from sqlalchemy.orm import relationship
 from .base import Base
 
 # Импорт моделей
-from .user import User, configure_user_relationships, UserProgress, StudyGroupMember
+from .user import User, UserProgress, StudyGroupMember, UserRole, StudyGroup
 from .task import Task, VariableAnswer, TaskAnswer, TaskAnswerVariableAnswer
 from .test import Test, TestTask, TestAnswer
 from .learning import LearningMaterial,  MaterialProgress, MaterialRating
@@ -16,13 +16,12 @@ __all__ = [
     'LearningMaterial',
     'ThemeTask', 'UserProgress', 'MaterialProgress', 'MaterialRating',
     'StudyGroupMember',
-    'setup_models'
+    'setup_models', 'UserRole', 'StudyGroup'
 ]
 
 
 def setup_models():
     """Настройка всех отношений между моделями"""
-    configure_user_relationships()
 
     TaskAnswer.task = relationship("Task", back_populates="answers")
     TaskAnswer.student = relationship("User", back_populates="task_answers")
