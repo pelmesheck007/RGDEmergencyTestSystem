@@ -21,6 +21,7 @@ class RZDLoginApp(MDApp):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         # Базовый URL вашего API
+        self.title = "RGDEmergencyTestSystem"
         self.api_url = "http://localhost:8000"  # Замените на реальный URL
         self.token = None  # Токен авторизации
         self.user_data = None  # Данные пользователя

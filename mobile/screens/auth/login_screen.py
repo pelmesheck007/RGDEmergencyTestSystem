@@ -24,7 +24,6 @@ class LoginScreen(MDScreen):
 
         self.ids.login_btn.disabled = True
         self.error_message = "Авторизация..."
-
         login_data = {
             "username": username,
             "password": password

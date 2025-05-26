@@ -222,22 +222,27 @@ def patch_update_me(
     db.refresh(user)
     return user
 
-@app.get("/themes/", response_model=List[ThemeTaskOut])
-def get_themes(db: Session = Depends(get_db)):
-    return db.query(ThemeTask).filter(ThemeTask.is_active == True).all()
 
 
 @app.post("/tasks/")
 def create_task(task: TaskCreate, db: Session = Depends(get_db)):
-    new_task = Task(**task.dict(exclude={"variable_answers"}))
+    new_task = Task(
+        **task.dict(exclude={"variable_answers"})
+    )
+    new_task.count_variables = len(task.variable_answers)
     db.add(new_task)
     db.flush()
 
     for answer in task.variable_answers:
-        db.add(VariableAnswer(task_id=new_task.id, **answer.dict()))
+        db.add(VariableAnswer(
+            task_id=new_task.id,
+            string_answer=answer.string_answer,
+            truthful=answer.truthful
+        ))
 
     db.commit()
     return {"id": new_task.id}
+
 
 
 if __name__ == "__main__":

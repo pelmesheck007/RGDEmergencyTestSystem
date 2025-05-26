@@ -1,102 +1,172 @@
 from kivy.app import App
-from kivy.properties import StringProperty, NumericProperty, ListProperty
+from kivy.properties import StringProperty
+from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.screenmanager import Screen
 from kivy.network.urlrequest import UrlRequest
 from kivymd.toast import toast
+from kivymd.uix.bottomsheet import MDListBottomSheet
+from kivymd.uix.boxlayout import MDBoxLayout
+from kivymd.uix.button import MDFlatButton, MDRaisedButton
+from kivymd.uix.dialog import MDDialog
+from kivymd.uix.list import OneLineListItem, OneLineAvatarListItem
+from kivymd.uix.selectioncontrol import MDCheckbox
+from kivymd.uix.textfield import MDTextField
 import json
 
-from kivymd.uix.boxlayout import MDBoxLayout
-from kivymd.uix.button import MDFlatButton
-from kivymd.uix.dialog import MDDialog
-from kivymd.uix.textfield import MDTextField
-from kivymd.uix.menu import MDDropdownMenu
 
 class TaskForm(MDBoxLayout):
-    question = StringProperty("")
-    task_type = StringProperty("text")
-    options_count = NumericProperty(0)
-    options = ListProperty([])
-
-    def __init__(self, **kwargs):
+    def __init__(self, task_number=1, total_tasks=1, **kwargs):
         super().__init__(**kwargs)
-        self.orientation = "vertical"
-        self.spacing = "8dp"
+        self.task_type = "text"
+        self.ids.title_label.text = f"Задание {task_number} ({task_number} из {total_tasks})"
+        self.ids.options_count_field.height = 0
+        self.ids.options_count_field.opacity = 0
+        self.user_data = None
+        self.user_id = None
 
-        self.question_field = MDTextField(hint_text="Вопрос", multiline=True, size_hint_y=None, height="80dp")
-        self.add_widget(self.question_field)
 
-        types = ["text", "short_answer", "radio", "checkbox"]
-        menu_items = [
-            {"text": t, "on_release": lambda x=t: self.set_task_type(x)} for t in types
+
+    def open_task_type_menu(self):
+        bottom_sheet = MDListBottomSheet()
+
+        types = [
+            {"text": "Текст", "type": "text"},
+            {"text": "Множественный выбор", "type": "checkbox"},
         ]
-        self.task_type_button_caller = MDFlatButton(text="Тип: текст", on_release=self.open_task_type_menu)
-        self.add_widget(self.task_type_button_caller)
 
-        self.task_type_menu = MDDropdownMenu(
-            caller=self.task_type_button_caller,
-            items=menu_items,
-            width_mult=4,
-        )
+        for item in types:
+            bottom_sheet.add_item(
+                item["text"],
+                lambda x, t=item["type"]: self.on_task_type_change(t),
+                icon="format-text" if item["type"] == "text" else "checkbox-marked-circle-outline"
+            )
 
-        self.options_count_field = MDTextField(
-            hint_text="Количество вариантов (для радио/чекбоксов)",
-            input_filter="int",
-            on_text_validate=self.update_options,
-            size_hint_y=None,
-            height=0
-        )
-        self.add_widget(self.options_count_field)
+        bottom_sheet.open()
 
-        self.options_container = MDBoxLayout(orientation="vertical", spacing="4dp", size_hint_y=None)
-        self.options_container.bind(minimum_height=self.options_container.setter('height'))
-        self.add_widget(self.options_container)
+    def on_task_type_change(self, selected_type):
+        self.task_type = selected_type
+        self.ids.type_button.text = f"Тип: {selected_type}"
+        self.ids.options_container.clear_widgets()
 
-    def open_task_type_menu(self, *args):
-        self.task_type_menu.open()
-
-    def set_task_type(self, task_type):
-        self.task_type = task_type
-        self.task_type_button_caller.text = f"Тип: {task_type}"
-        self.task_type_menu.dismiss()
-        self.update_ui()
-
-    def update_ui(self):
-        if self.task_type in ("radio", "checkbox"):
-            self.options_count_field.height = "40dp"
-            self.options_count_field.size_hint_y = None
+        if selected_type == "checkbox":
+            self.ids.options_count_field.height = 48
+            self.ids.options_count_field.opacity = 1
         else:
-            self.options_count_field.height = 0
-            self.options_count_field.size_hint_y = None
-            self.options_container.clear_widgets()
+            self.ids.options_count_field.height = 0
+            self.ids.options_count_field.opacity = 0
 
     def update_options(self, *args):
         try:
-            count = int(self.options_count_field.text)
-        except:
-            count = 0
-        self.options_container.clear_widgets()
-        for i in range(count):
-            option_field = MDTextField(hint_text=f"Вариант {i+1}", size_hint_y=None, height="40dp")
-            self.options_container.add_widget(option_field)
-
-class CreateTestScreen(Screen):
-    def on_pre_enter(self):
-        self.menu = None  # Инициализация меню
-        test_id = None
-
-    def create_test(self):
-        if not hasattr(self, 'selected_theme_id'):
-            toast("Пожалуйста, выберите тему из списка.")
+            count = int(self.ids.options_count_field.text)
+            if count <= 0:
+                raise ValueError
+        except ValueError:
+            toast("Введите положительное число вариантов")
             return
 
-        test_data = {
-            "test_name": self.ids.test_name.text,
-            "description": self.ids.description.text,
-            "time_limit": int(self.ids.time_limit.text or 0),
-            "passing_score": int(self.ids.passing_score.text or 0),
-            "theme_id": self.selected_theme_id,
-            "attempts_limit": int(self.ids.attempts_limit.text or 0)
+        self.ids.options_container.clear_widgets()
+
+        for i in range(count):
+            row = BoxLayout(orientation="horizontal", spacing="10dp",
+                          size_hint_y=None, height="48dp")
+
+            checkbox = MDCheckbox(
+                size_hint_x=0.15,
+                active=False
+            )
+
+            option_field = MDTextField(
+                hint_text=f"Вариант {i + 1}",
+                size_hint_x=0.85,
+                multiline=False
+            )
+
+            row.add_widget(checkbox)
+            row.add_widget(option_field)
+            self.ids.options_container.add_widget(row)
+
+    def get_task_data(self):
+        question = self.ids.question_field.text.strip()
+        if not question:
+            return None
+
+        options = []
+        correct_answers = []
+
+        if self.task_type == "checkbox":
+            for row in self.ids.options_container.children:
+                checkbox, option_field = row.children[::-1]  # Разворачиваем список
+                option_text = option_field.text.strip()
+                if option_text:
+                    options.append(option_text)
+                    if checkbox.active:
+                        correct_answers.append(option_text)
+
+        return {
+            "question": question,
+            "task_type": self.task_type,
+            "options": options if self.task_type == "checkbox" else [],
+            "correct_answers": correct_answers,
         }
+
+
+class CreateTestScreen(Screen):
+    selected_theme_name = StringProperty("Выберите тему *")
+    selected_theme_id = StringProperty()
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.theme_dialog = None
+        self.test_id = None
+        self.selected_theme_id = ""
+        self.selected_theme_name = "Выберите тему *"
+        self.themes = []
+        self.user_id = None
+
+    def on_pre_enter(self, *args):
+        super().on_pre_enter(*args)
+        self.app = App.get_running_app()  # Получаем ссылку на приложение
+
+        self.selected_theme_id = ""
+        self.selected_theme_name = "Выберите тему *"
+        self.ids.theme.text = self.selected_theme_name
+
+        if hasattr(self.app, 'user_data') and self.app.user_data:
+            print("Пользователь:", self.app.user_data.get("full_name", "Неизвестно"))
+            self.user_id = self.app.user_data['id']
+
+    def show_test_form(self):
+        self.ids.test_form_box.disabled = False
+        self.ids.test_form_box.opacity = 1
+        self.ids.tasks_container.clear_widgets()
+
+    def show_task_creation_ui(self):
+        self.ids.test_form_box.disabled = True
+        self.ids.test_form_box.opacity = 0.3
+        self.create_task_forms()
+
+
+    def create_test(self):
+        if not hasattr(self, 'selected_theme_id') or not self.selected_theme_id:
+            toast("Выберите тему теста")
+            return
+
+        try:
+            test_data = {
+                "test_name": self.ids.test_name.text.strip(),
+                "description": self.ids.description.text.strip(),
+                "time_limit": int(self.ids.time_limit.text or 0),
+                "passing_score": int(self.ids.passing_score.text or 0),
+                "theme_id": self.selected_theme_id,
+                "attempts_limit": int(self.ids.attempts_limit.text or 0)
+            }
+        except ValueError:
+            toast("Проверьте числовые поля")
+            return
+
+        if not test_data["test_name"]:
+            toast("Введите название теста")
+            return
 
         app = App.get_running_app()
         headers = {
@@ -104,160 +174,124 @@ class CreateTestScreen(Screen):
             "Content-Type": "application/json"
         }
 
-        print("Отправляемые данные:", json.dumps(test_data, indent=2))
-
         UrlRequest(
             url=f"{app.api_url}/tests/",
             req_body=json.dumps(test_data),
             req_headers=headers,
-            on_success=self.on_success,
+            on_success=self.on_test_created,
             on_error=self.on_error,
             method='POST'
         )
 
-
-    def on_error(self, req, error):
-        toast(f"Ошибка создания теста: {error}")
-
-    def open_theme_menu(self):
-        app = App.get_running_app()
-        self.ids.theme_loader.active = True
-        UrlRequest(
-            url=f"{app.api_url}/themes/",
-            req_headers={"Authorization": f"Bearer {app.token}"},
-            on_success=self.on_themes_loaded,
-            on_error=self.on_error
-        )
-
-    def set_theme(self, theme_obj):
-        self.ids.theme.text = theme_obj["title"]
-        self.selected_theme_id = theme_obj["id"]
-        if hasattr(self, 'menu'):
-            self.menu.dismiss()
-
-    def open_add_theme_dialog(self):
-        self.dialog = MDDialog(
-            title="Новая тема",
-            type="custom",
-            content_cls=MDTextField(hint_text="Название темы"),
-            buttons=[
-                MDFlatButton(text="ОТМЕНА", on_release=lambda x: self.dialog.dismiss()),
-                MDFlatButton(text="СОХРАНИТЬ", on_release=self.create_theme),
-            ],
-        )
-        self.dialog.open()
-
-    def create_theme(self, *args):
-        theme_title = self.dialog.content_cls.text
-        self.dialog.dismiss()
-        app = App.get_running_app()
-        UrlRequest(
-            url=f"{app.api_url}/themes/",
-            req_headers={
-                "Authorization": f"Bearer {app.token}",
-                "Content-Type": "application/json"
-            },
-            req_body=json.dumps({"title": theme_title}),
-            on_success=lambda req, result: self.after_theme_created(result),
-            on_error=lambda req, err: toast("Ошибка создания темы"),
-            method="POST",
-        )
-
-    def after_theme_created(self, new_theme):
-        toast("Тема добавлена")
-        self.selected_theme_id = new_theme["id"]
-        self.ids.theme.text = new_theme["title"]
-        self.open_theme_menu()  # Обновить список
-
-    def on_themes_loaded(self, request, result):
-        menu_items = []
-        for theme in result:
-            menu_items.append({
-                "text": theme["title"],
-                "on_release": lambda x=theme: self.set_theme(x)
-            })
-
-        self.ids.theme_loader.active = False
-
-        self.menu = MDDropdownMenu(
-            caller=self.ids.theme,
-            items=menu_items,
-            width_mult=4,
-        )
-        self.menu.open()
-
-    def create_test_and_load_tasks_ui(self):
-        # Сначала создать тест на сервере
-        self.create_test()
-
-        # Очистить контейнер заданий (на всякий случай)
-        self.ids.tasks_container.clear_widgets()
-
-    def on_success(self, req, result):
-        toast("Тест успешно создан!")
+    def on_test_created(self, req, result):
         self.test_id = result["id"]
-
-        self.manager.current = "create_test"  # можно оставить
-        self.ids.tasks_container.clear_widgets()
-
-        self.create_task_forms()
+        toast("Тест создан! Добавьте задания")
+        self.show_task_creation_ui()
 
     def create_task_forms(self):
-
-        container = self.ids.tasks_container
-        container.clear_widgets()
         try:
-            num = int(self.ids.num_tasks.text)
-            if num <= 0:
+            num_tasks = int(self.ids.num_tasks.text)
+            if num_tasks <= 0:
                 raise ValueError
-        except:
+        except ValueError:
             toast("Введите корректное число заданий")
             return
-        for i in range(num):
-            task_form = TaskForm()
-            container.add_widget(task_form)
-        # Добавим кнопку для отправки заданий
-        from kivymd.uix.button import MDRaisedButton
-        btn = MDRaisedButton(
-            text="Сохранить задания",
-            pos_hint={"center_x": 0.5},
-            on_release=self.send_tasks_to_server
+
+        self.ids.tasks_container.clear_widgets()
+
+        for i in range(num_tasks):
+            task_form = TaskForm(task_number=i + 1, total_tasks=num_tasks)
+            self.ids.tasks_container.add_widget(task_form)
+
+        # Добавляем кнопки управления
+        buttons_box = BoxLayout(size_hint_y=None, height="80dp", spacing="10dp")
+
+        back_btn = MDRaisedButton(
+            text="Назад к тесту",
+            on_release=lambda x: self.show_test_form()
         )
-        container.add_widget(btn)
+
+        save_btn = MDRaisedButton(
+            text="Сохранить задания",
+            on_release=lambda x: self.send_tasks_to_server()
+        )
+
+        add_btn = MDRaisedButton(
+            text="+ Добавить задание",
+            on_release=lambda x: self.add_single_task()
+        )
+
+        buttons_box.add_widget(back_btn)
+        buttons_box.add_widget(save_btn)
+        buttons_box.add_widget(add_btn)
+
+        self.ids.tasks_container.add_widget(buttons_box)
+
+    def add_single_task(self):
+        current_forms = len([w for w in self.ids.tasks_container.children if isinstance(w, TaskForm)])
+        new_form = TaskForm(task_number=current_forms + 1, total_tasks=current_forms + 1)
+        self.ids.tasks_container.add_widget(new_form, index=0)  # Добавляем в начало
+        self.update_task_numbers()
+
+    def update_task_numbers(self):
+        forms = [w for w in self.ids.tasks_container.children if isinstance(w, TaskForm)]
+        for i, form in enumerate(reversed(forms), 1):
+            form.ids.title_label.text = f"Задание {i} ({i} из {len(forms)})"
 
     def send_tasks_to_server(self, *args):
         if not self.test_id:
             toast("Сначала создайте тест")
             return
 
+        # Маппинг типов взаимодействия
+        INTERACTION_TYPES = {
+            "text": 1,
+            "checkbox": 2,
+            "multiple_choice": 2
+        }
+
+        # Маппинг уровней сложности
+        DIFFICULTY_LEVELS = {
+            "easy": 1,
+            "medium": 2,
+            "hard": 3
+        }
+
         tasks_data = []
-        for task_form in self.ids.tasks_container.children:
-            # Пропускаем кнопку в конце (если это кнопка)
-            if not isinstance(task_form, TaskForm):
-                continue
+        for widget in self.ids.tasks_container.children:
+            if isinstance(widget, TaskForm):
+                task_data = widget.get_task_data()
+                if not task_data:
+                    toast("Заполните все вопросы")
+                    return
 
-            question = task_form.question_field.text.strip()
-            task_type = task_form.task_type
-            options = []
-            if task_type in ("radio", "checkbox"):
-                for option_field in task_form.options_container.children:
-                    opt_text = option_field.text.strip()
-                    if opt_text:
-                        options.append(opt_text)
+                if task_data["task_type"] == "checkbox" and not task_data["options"]:
+                    toast("Добавьте варианты ответа для всех заданий")
+                    return
 
-            if not question:
-                toast("Заполните все вопросы")
-                return
+                # Преобразуем данные в формат сервера
+                validated_data = {
+                    "question": task_data["question"],
+                    "interaction_type": INTERACTION_TYPES.get(task_data["task_type"], 1),
+                    "time_limit": 60,
+                    "difficulty_level": DIFFICULTY_LEVELS.get("easy", 1),
+                    "theme": self.selected_theme_id,
+                    #"count_variables": len(task_data.get("options", []))
+                }
 
-            task_obj = {
-                "question": question,
-                "task_type": task_type,
-                "options": options,
-            }
-            tasks_data.append(task_obj)
+                if task_data["task_type"] == "checkbox":
+                    validated_data["variable_answers"] = [
+                        {
+                            "string_answer": opt,
+                            "truthful": opt in task_data["correct_answers"],
+                            "order_number": i
+                        } for i, opt in enumerate(task_data["options"])
+                    ]
+
+                tasks_data.append(validated_data)
 
         if not tasks_data:
-            toast("Добавьте задания")
+            toast("Добавьте хотя бы одно задание")
             return
 
         app = App.get_running_app()
@@ -267,18 +301,146 @@ class CreateTestScreen(Screen):
         }
 
         body = {
-            "test_id": self.test_id,
+            "test_id": str(self.test_id),
+            "creator_id": self.user_id,
             "tasks": tasks_data
         }
 
-        print("Отправляем задания:", json.dumps(body, indent=2))
+        print("Отправляемые данные:", json.dumps(body, indent=2, ensure_ascii=False))
 
         UrlRequest(
             url=f"{app.api_url}/tasks/",
-            req_body=json.dumps(body),
+            req_body=json.dumps(body, ensure_ascii=False),
             req_headers=headers,
-            on_success=lambda req, result: toast("Задания успешно сохранены!"),
-            on_error=lambda req, err: toast(f"Ошибка при сохранении заданий: {err}"),
-            method="POST",
+            on_success=lambda req, res: toast("Задания сохранены!"),
+            on_failure=lambda req, err: toast(f"Ошибка сервера: {err}"),
+            on_error=lambda req, err: toast(f"Сетевая ошибка: {err}"),
+            method="POST"
         )
 
+    def get_task_data(self):
+        question = self.ids.question_field.text.strip()
+        if not question:
+            return None
+
+        options = []
+        correct_answers = []
+
+        if self.task_type == "checkbox":
+            for row in self.ids.options_container.children:
+                checkbox, option_field = row.children[::-1]  # Разворачиваем список
+                option_text = option_field.text.strip()
+                if option_text:
+                    options.append(option_text)
+                    if checkbox.active:
+                        correct_answers.append(option_text)
+
+        return {
+            "question": question,
+            "task_type": self.task_type,
+            "options": options if self.task_type == "checkbox" else [],
+            "correct_answers": correct_answers,
+            "difficulty": "easy"
+        }
+
+    def open_theme_menu(self):
+        app = App.get_running_app()
+        self.ids.theme_loader.active = True
+
+        from kivymd.uix.list import OneLineListItem
+
+        def on_themes_loaded(req, result):
+            self.ids.theme_loader.active = False
+
+            if not result or not isinstance(result, list):
+                toast("Нет доступных тем или ошибка формата данных")
+                return
+
+            print("Полученные темы с сервера:", result)
+
+            self.themes = result  # Сохраняем список тем
+
+            bottom_sheet = MDListBottomSheet()
+
+            for theme in self.themes:
+                title = theme.get("title")
+                if not title:
+                    continue
+
+                bottom_sheet.add_item(
+                    title,
+                    lambda x, t=theme: self.set_selected_theme(t),
+                    icon="format-list-bulleted"  # или любой другой иконкой
+                )
+
+            bottom_sheet.open()
+
+        UrlRequest(
+            url=f"{app.api_url}/themes/",
+            req_headers={"Authorization": f"Bearer {app.token}"},
+            on_success=on_themes_loaded,
+            on_failure=lambda req, err: toast(f"Ошибка загрузки тем: {err}"),
+            on_error=lambda req, err: toast(f"Ошибка сети: {err}")
+        )
+
+    def set_selected_theme(self, theme):
+        self.selected_theme_id = theme['id']
+        self.ids.theme.text = theme.get('title', 'Без названия')
+        if hasattr(self, 'theme_dialog') and self.theme_dialog:
+            self.theme_dialog.dismiss()
+
+
+    def set_theme_and_close(self, theme_obj, dialog):
+        self.selected_theme_id = theme_obj["id"]
+        self.ids.theme.text = theme_obj["title"]
+        dialog.dismiss()
+
+    def set_theme(self, theme_obj):
+        self.selected_theme_id = theme_obj["id"]
+        self.ids.theme.text = theme_obj["title"]
+        if hasattr(self, 'menu') and self.menu:
+            self.menu.dismiss()
+
+    def open_add_theme_dialog(self):
+        self.dialog = MDDialog(
+            title="Новая тема",
+            type="custom",
+            content_cls=MDTextField(hint_text="Название темы"),
+            buttons=[
+                MDFlatButton(text="Отмена", on_release=lambda x: self.dialog.dismiss()),
+                MDFlatButton(text="Создать", on_release=self.create_theme),
+            ],
+        )
+        self.dialog.open()
+
+    def create_theme(self, *args):
+        theme_title = self.dialog.content_cls.text.strip()
+        self.dialog.dismiss()
+
+        if not theme_title:
+            toast("Введите название темы")
+            return
+
+        app = App.get_running_app()
+        UrlRequest(
+            url=f"{app.api_url}/themes/",
+            req_headers={
+                "Authorization": f"Bearer {app.token}",
+                "Content-Type": "application/json"
+            },
+            req_body=json.dumps({"title": theme_title}),
+            on_success=lambda req, res: self.after_theme_created(res),
+            on_error=lambda req, err: toast("Ошибка создания темы"),
+            method="POST"
+        )
+
+    def after_theme_created(self, new_theme):
+        self.selected_theme_id = new_theme["id"]
+        self.ids.theme.text = new_theme["title"]
+        toast("Тема создана")
+        self.open_theme_menu()  # Обновляем меню
+
+    def on_error(self, req, error):
+        toast(f"Ошибка: {error}")
+        self.ids.test_form_box.disabled = False
+        #Animation(opacity=0.3, duration=0.3, t='out_quad').start(self.ids.test_form_box)

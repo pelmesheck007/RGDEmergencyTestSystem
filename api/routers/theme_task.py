@@ -1,9 +1,14 @@
+from uuid import uuid4
+
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic.schema import datetime
 from sqlalchemy.orm import Session
 from typing import List
 from api.database import get_db
+from api.dependencies import get_current_user
+from api.models import TestTask, VariableAnswer, Task
 from api.services import theme_task_service
-from api.schemas.theme_task import ThemeTaskCreate, ThemeTaskUpdate, ThemeTaskOut
+from api.schemas.theme_task import ThemeTaskCreate, ThemeTaskUpdate, ThemeTaskOut, CreateTasksRequest
 
 router = APIRouter(prefix="/theme-tasks", tags=["Theme Tasks"])
 
@@ -45,3 +50,4 @@ def delete_theme_task(task_id: str, db: Session = Depends(get_db)):
     if not deleted:
         raise HTTPException(status_code=404, detail="ThemeTask not found")
     return {"detail": "Deleted successfully"}
+

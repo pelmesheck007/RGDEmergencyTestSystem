@@ -6,7 +6,7 @@ import os
 from api.models.base import Base
 
 # Для SQLite используем относительный путь к файлу БД
-SQLALCHEMY_DATABASE_URL = "sqlite:///./railway_training.db"
+SQLALCHEMY_DATABASE_URL = "sqlite:///./railway_training1.db"
 
 # Создаем синхронный движок для SQLite
 engine = create_engine(

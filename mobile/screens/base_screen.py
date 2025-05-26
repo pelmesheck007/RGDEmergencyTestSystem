@@ -18,11 +18,14 @@ class BaseScreen(MDScreen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.app = MDApp.get_running_app()
-        self.build_content()
+
 
     def build_content(self):
         """Метод для построения содержимого экрана"""
         pass
+
+    def on_kv_post(self, base_widget):
+        self.build_content()
 
     def on_pre_enter(self, *args):
         """Вызывается перед входом на экран"""

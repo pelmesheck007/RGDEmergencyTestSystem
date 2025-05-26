@@ -32,36 +32,9 @@
                 bar_color: app.rjd_dark_red
 
                 BoxLayout:
+                    id: content_box
                     orientation: 'vertical'
                     size_hint_y: None
                     height: self.minimum_height
                     padding: [0, 10, 0, 20]
                     spacing: 15
-
-                    MDSpinner:
-                        id: loading_spinner
-                        size_hint: None, None
-                        size: dp(36), dp(36)
-                        pos_hint: {'center_x': 0.5}
-                        active: False
-
-                    MDLabel:
-                        text: root.welcome_message
-                        font_style: "H5"
-                        halign: "center"
-                        size_hint_y: None
-                        height: self.texture_size[1]
-                        padding: [0, 10, 0, 10]
-
-                    MDLabel:
-                        text: f"{root.role} {root.username}!"
-                        font_style: "Body1"
-                        halign: "center"
-                        size_hint_y: None
-                        height: self.texture_size[1]
-                        theme_text_color: "Custom"
-                        text_color: app.rjd_dark_red
-
-                    Widget:
-                        size_hint_y: None
-                        height: dp(30)

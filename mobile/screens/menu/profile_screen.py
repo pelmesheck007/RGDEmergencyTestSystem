@@ -150,7 +150,6 @@ class ProfileScreen(BaseScreen):
             'full_name': result.get('full_name', ''),
             'email': result.get('email', '')
         }
-        # Обновляем данные в приложении
         if hasattr(self.app, 'user_data'):
             self.app.user_data.update(self.original_data)
         self.edit_mode = False
