@@ -14,7 +14,7 @@ import json
 
 
 class RegisterScreen(MDScreen):
-    api_url = "http://127.0.0.1:8000/auth/register"  # или твой IP, если на телефоне
+    api_url = "http://127.0.0.1:8000/auth/register"
 
     def register(self):
         fio = self.ids.fio.text.strip()

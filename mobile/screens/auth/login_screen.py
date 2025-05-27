@@ -21,7 +21,6 @@ class LoginScreen(MDScreen):
         if not username or not password:
             self.show_error("Введите логин и пароль")
             return
-
         self.ids.login_btn.disabled = True
         self.error_message = "Авторизация..."
         login_data = {

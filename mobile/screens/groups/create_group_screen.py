@@ -30,6 +30,9 @@ class CreateGroupScreen(BaseScreen):
             method='POST'
         )
 
+    def go_back(self):
+        self.manager.current = "groups"
+
     def on_success(self, req, result):
         toast("Группа успешно создана!")
         self.manager.current = "groups"

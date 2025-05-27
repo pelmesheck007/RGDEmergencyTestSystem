@@ -1,19 +1,47 @@
 <CreateGroupScreen>:
     name: "create_group"
-    MDBoxLayout:
-        orientation: "vertical"
-        padding: dp(20)
-        spacing: dp(10)
 
-        MDTextField:
-            id: group_name
-            hint_text: "Название группы"
 
-        MDTextField:
-            id: group_description
-            hint_text: "Описание группы"
+    MDFloatLayout:
+        md_bg_color: app.rjd_light_red
 
-        MDRaisedButton:
-            text: "Создать группу"
-            pos_hint: {"center_x": .5}
-            on_release: root.create_group()
+        MDCard:
+            size_hint: .9, .88
+            pos_hint: {"center_x": .5, "top": .95}
+            elevation: 2
+            padding: [20, 15, 20, 15]
+            spacing: 12
+            orientation: "vertical"
+            md_bg_color: app.rjd_white
+            radius: [12]
+
+            MDTopAppBar:
+                id: menu_button
+                title: "Создание группы"
+                elevation: 2
+                md_bg_color: app.rjd_dark_red
+                specific_text_color: app.rjd_white
+                font_style: "H6"
+                size_hint_y: None
+                height: dp(56)
+                right_action_items: [["arrow-left", lambda x: root.go_back()]]
+
+            MDBoxLayout:
+                orientation: "vertical"
+                padding: dp(20)
+                spacing: dp(10)
+
+
+
+                MDTextField:
+                    id: group_name
+                    hint_text: "Название группы"
+
+                MDTextField:
+                    id: group_description
+                    hint_text: "Описание группы"
+
+                MDRaisedButton:
+                    text: "Создать группу"
+                    pos_hint: {"center_x": .5}
+                    on_release: root.create_group()

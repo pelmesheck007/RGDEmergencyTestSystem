@@ -1,5 +1,5 @@
 from kivy.app import App
-from kivy.properties import StringProperty
+from kivy.properties import StringProperty, Logger
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.screenmanager import Screen
 from kivy.network.urlrequest import UrlRequest
@@ -12,6 +12,8 @@ from kivymd.uix.list import OneLineListItem, OneLineAvatarListItem
 from kivymd.uix.selectioncontrol import MDCheckbox
 from kivymd.uix.textfield import MDTextField
 import json
+
+from mobile.screens.base_screen import BaseScreen
 
 
 class TaskForm(MDBoxLayout):
@@ -109,8 +111,11 @@ class TaskForm(MDBoxLayout):
             "correct_answers": correct_answers,
         }
 
+    def go_back(self):
+        self.manager.current = "tests"  # Название экрана со списком тестов (или задач)
 
-class CreateTestScreen(Screen):
+
+class CreateTestScreen(BaseScreen):
     selected_theme_name = StringProperty("Выберите тему *")
     selected_theme_id = StringProperty()
 
@@ -122,6 +127,21 @@ class CreateTestScreen(Screen):
         self.selected_theme_name = "Выберите тему *"
         self.themes = []
         self.user_id = None
+
+    def go_back(self):
+        self.manager.current = "tests"
+
+    def show_tasks_section(self):
+        self.ids.test_form_box.opacity = 0
+        self.ids.test_form_box.disabled = True
+        self.ids.test_form_box.size_hint_y = None
+        self.ids.test_form_box.height = 0
+
+        self.ids.tasks_section.opacity = 1
+        self.ids.tasks_section.disabled = False
+        self.ids.tasks_section.size_hint_y = None
+        self.ids.tasks_section.height = self.ids.tasks_section.minimum_height
+
 
     def on_pre_enter(self, *args):
         super().on_pre_enter(*args)
@@ -135,16 +155,12 @@ class CreateTestScreen(Screen):
             print("Пользователь:", self.app.user_data.get("full_name", "Неизвестно"))
             self.user_id = self.app.user_data['id']
 
-    def show_test_form(self):
-        self.ids.test_form_box.disabled = False
-        self.ids.test_form_box.opacity = 1
-        self.ids.tasks_container.clear_widgets()
-
     def show_task_creation_ui(self):
         self.ids.test_form_box.disabled = True
-        self.ids.test_form_box.opacity = 0.3
+        self.ids.test_form_box.opacity = 0.3  # Приглушение
+        self.ids.tasks_section.disabled = False
+        self.ids.tasks_section.opacity = 1  # Сделать видимым
         self.create_task_forms()
-
 
     def create_test(self):
         if not hasattr(self, 'selected_theme_id') or not self.selected_theme_id:
@@ -187,6 +203,13 @@ class CreateTestScreen(Screen):
         self.test_id = result["id"]
         toast("Тест создан! Добавьте задания")
         self.show_task_creation_ui()
+        #self.show_tasks_section()
+
+    def show_test_form(self):
+        self.ids.test_form_box.disabled = False
+        self.ids.test_form_box.opacity = 1  # Полная видимость
+        self.ids.tasks_section.disabled = True
+        self.ids.tasks_section.opacity = 0  # Скрыть задания
 
     def create_task_forms(self):
         try:
@@ -310,13 +333,27 @@ class CreateTestScreen(Screen):
 
         UrlRequest(
             url=f"{app.api_url}/tasks/",
-            req_body=json.dumps(body, ensure_ascii=False),
+            req_body=json.dumps(body, ensure_ascii=False).encode('utf-8'),
             req_headers=headers,
-            on_success=lambda req, res: toast("Задания сохранены!"),
+            on_success=lambda req, res: self.on_tasks_created(),
             on_failure=lambda req, err: toast(f"Ошибка сервера: {err}"),
             on_error=lambda req, err: toast(f"Сетевая ошибка: {err}"),
             method="POST"
         )
+
+    def on_tasks_created(self):
+        try:
+            toast("Задания сохранены!")
+            tests_screen = self.manager.get_screen("tests")
+            if hasattr(tests_screen, 'on_pre_enter'):
+                tests_screen.on_pre_enter()
+            #self.manager.current = "tests"
+
+            return True
+        except Exception as e:
+            Logger.error(f"TasksScreen: Error saving tasks - {str(e)}")
+            toast("Ошибка при сохранении заданий!")
+            return False
 
     def get_task_data(self):
         question = self.ids.question_field.text.strip()

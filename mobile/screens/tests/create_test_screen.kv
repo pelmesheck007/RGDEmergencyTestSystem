@@ -1,108 +1,147 @@
 <CreateTestScreen>:
     name: "create_test"
 
-    MDBoxLayout:
-        orientation: "vertical"
-        padding: "20dp"
-        spacing: "10dp"
+    MDFloatLayout:
+        md_bg_color: app.rjd_light_red
 
-        ScrollView:
-            size_hint_y: 1
+        MDCard:
+            size_hint: .9, .88
+            pos_hint: {"center_x": .5, "top": .95}
+            elevation: 2
+            padding: [20, 15, 20, 15]
+            spacing: 12
+            orientation: "vertical"
+            md_bg_color: app.rjd_white
+            radius: [12]
 
-            MDBoxLayout:
-                id: test_form_box
-                orientation: "vertical"
+            MDTopAppBar:
+                id: menu_button
+                title: "Создание теста"
+                elevation: 2
+                md_bg_color: app.rjd_dark_red
+                specific_text_color: app.rjd_white
+                font_style: "H6"
                 size_hint_y: None
-                height: self.minimum_height
-                spacing: "12dp"
-                padding: "10dp"
-                md_bg_color: app.theme_cls.bg_light
-                radius: [12,]
+                height: dp(56)
+                right_action_items: [["arrow-left", lambda x: root.back_to_previous()]]
 
-                MDTextField:
-                    id: test_name
-                    hint_text: "Название теста *"
-                    required: True
-                    mode: "rectangle"
-
-                MDTextField:
-                    id: description
-                    hint_text: "Описание"
-                    multiline: True
-                    mode: "rectangle"
-
-                MDTextField:
-                    id: time_limit
-                    hint_text: "Время (минуты)"
-                    input_filter: "int"
-                    input_type: "number"
-                    mode: "rectangle"
-
-                MDTextField:
-                    id: passing_score
-                    hint_text: "Проходной балл (%)"
-                    input_filter: "int"
-                    input_type: "number"
-                    mode: "rectangle"
-
-                MDTextField:
-                    id: attempts_limit
-                    hint_text: "Лимит попыток"
-                    input_filter: "int"
-                    input_type: "number"
-                    mode: "rectangle"
+            ScrollView:
+                bar_width: dp(4)
+                bar_color: app.rjd_dark_red
 
                 MDBoxLayout:
-                    orientation: "horizontal"
+                    id: content_container
+                    orientation: "vertical"
                     size_hint_y: None
-                    height: "48dp"
-                    spacing: "10dp"
+                    height: self.minimum_height
+                    spacing: "16dp"
+                    padding: "10dp"
 
-                    MDRectangleFlatButton:
-                        id: theme
-                        text: root.selected_theme_name
-                        on_release: root.open_theme_menu()
-                        size_hint_x: 0.7
+                    # Блок создания теста
+                    MDBoxLayout:
+                        id: test_form_box
+                        orientation: "vertical"
+                        size_hint_y: None
+                        height: self.minimum_height
+                        spacing: "12dp"
+                        padding: "10dp"
+                        md_bg_color: app.theme_cls.bg_light
+                        radius: [12,]
+                        opacity: 1
+                        disabled: False
 
-                    MDRaisedButton:
-                        text: "Добавить"
-                        on_release: root.open_add_theme_dialog()
-                        size_hint_x: 0.3
+                        MDTextField:
+                            id: test_name
+                            hint_text: "Название теста *"
+                            required: True
+                            mode: "rectangle"
 
-                    MDSpinner:
-                        id: theme_loader
-                        size_hint: None, None
-                        size: "30dp", "30dp"
-                        active: False
+                        MDTextField:
+                            id: description
+                            hint_text: "Описание"
+                            multiline: True
+                            mode: "rectangle"
 
-                MDRaisedButton:
-                    text: "Создать тест"
-                    pos_hint: {"center_x": 0.5}
-                    on_release: root.create_test()
-                    size_hint_y: None
-                    height: "48dp"
+                        MDTextField:
+                            id: time_limit
+                            hint_text: "Время (минуты)"
+                            input_filter: "int"
+                            input_type: "number"
+                            mode: "rectangle"
 
-        MDSeparator:
-            height: "1dp"
+                        MDTextField:
+                            id: passing_score
+                            hint_text: "Проходной балл (%)"
+                            input_filter: "int"
+                            input_type: "number"
+                            mode: "rectangle"
 
-        MDTextField:
-            id: num_tasks
-            hint_text: "Количество заданий"
-            input_filter: "int"
-            input_type: "number"
-            mode: "rectangle"
-            on_text_validate: root.show_task_creation_ui()
-            size_hint_y: None
-            height: "48dp"
+                        MDTextField:
+                            id: attempts_limit
+                            hint_text: "Лимит попыток"
+                            input_filter: "int"
+                            input_type: "number"
+                            mode: "rectangle"
 
-        ScrollView:
-            id: tasks_scroll
-            MDBoxLayout:
-                id: tasks_container
-                orientation: "vertical"
-                adaptive_height: True
-                spacing: "10dp"
-                padding: "10dp"
+                        MDBoxLayout:
+                            orientation: "horizontal"
+                            size_hint_y: None
+                            height: "48dp"
+                            spacing: "10dp"
+
+                            MDRectangleFlatButton:
+                                id: theme
+                                text: root.selected_theme_name
+                                on_release: root.open_theme_menu()
+                                size_hint_x: 0.7
+
+                            MDRaisedButton:
+                                text: "Добавить"
+                                on_release: root.open_add_theme_dialog()
+                                size_hint_x: 0.3
+
+                            MDSpinner:
+                                id: theme_loader
+                                size_hint: None, None
+                                size: "30dp", "30dp"
+                                active: False
+
+                            MDTextField:
+                                id: num_tasks
+                                hint_text: "Количество заданий"
+                                input_filter: "int"
+                                input_type: "number"
+                                mode: "rectangle"
+                                on_text_validate: root.show_task_creation_ui()
+                                size_hint_y: None
+                                height: "48dp"
+
+                        MDRaisedButton:
+                            text: "Создать тест"
+                            pos_hint: {"center_x": 0.5}
+                            on_release: root.create_test()
+                            size_hint_y: None
+                            height: "48dp"
+
+                    # Блок создания заданий
+                    MDBoxLayout:
+                        id: tasks_section
+                        orientation: "vertical"
+                        size_hint_y: None
+                        height: self.minimum_height
+                        spacing: "12dp"
+                        opacity: 0
+                        disabled: True
+                        padding: "10dp"
+
+
+
+                        MDBoxLayout:
+                            id: tasks_container
+                            orientation: "vertical"
+                            size_hint_y: None
+                            height: self.minimum_height
+                            spacing: "10dp"
 
 
 <TaskForm>:
@@ -136,7 +175,6 @@
         on_release: root.open_task_type_menu()
         size_hint_y: None
         height: "48dp"
-
 
     MDTextField:
         id: options_count_field
