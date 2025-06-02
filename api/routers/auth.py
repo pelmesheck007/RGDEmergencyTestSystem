@@ -24,6 +24,7 @@ import uuid
 
 auth_router = APIRouter(prefix="/auth", tags=["Auth"])
 
+
 @auth_router.post("/register", response_model=UserOut)
 def register(data: UserRegister, db: Session = Depends(get_db)):
     if db.query(User).filter(User.username == data.username).first():

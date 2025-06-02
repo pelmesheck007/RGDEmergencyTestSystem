@@ -55,7 +55,7 @@ class TestTakingScreen(BaseScreen):
         task_id = task["id"]
         self.current_task_id = task_id  # ⬅ сохраняем текущий task_id
 
-        self.ids.question_text.text = task["question"]
+        self.ids.question_label.text = task["question"]
         self.ids.answers_box.clear_widgets()
 
         for answer in question["variable_answers"]:
@@ -97,7 +97,7 @@ class TestTakingScreen(BaseScreen):
             f"{self.app.api_url}/tests/{self.app.current_test_id}/questions/",
             req_headers=headers,
             on_success=self.on_questions_loaded,
-            on_error=self.on_load_error,  # ← Вот здесь и нужен этот метод
+            on_error=self.on_load_error,
             on_failure=self.on_load_error,
             timeout=10
         )

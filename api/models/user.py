@@ -24,7 +24,7 @@ class StudyGroup(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     members = relationship("StudyGroupMember", back_populates="group")
-    # courses = relationship("GroupCourse", back_populates="group")  # если нужно
+    # courses = relationship("GroupCourse", back_populates="group")
 
 
 class User(Base):

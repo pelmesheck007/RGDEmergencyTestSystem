@@ -1,5 +1,6 @@
 <RegisterScreen>:
     name: 'register'
+    error_message: ""
 
     MDFloatLayout:
         md_bg_color: app.rjd_light_red
@@ -7,7 +8,7 @@
         MDCard:
             size_hint: .85, .7
             pos_hint: {"center_x": .5, "center_y": .5}
-            elevation: 8
+            elevation: 4
             padding: 25
             spacing: 25
             orientation: "vertical"
@@ -33,7 +34,7 @@
 
             MDTextField:
                 id: username
-                hint_text: "Табельный номер"
+                hint_text: "Имя пользователя"
                 size_hint_x: .9
                 pos_hint: {"center_x": .5}
                 icon_left: "badge-account"
@@ -61,6 +62,7 @@
                 line_color_focus: app.rjd_dark_red
 
             MDRaisedButton:
+                id: register_btn
                 text: "ЗАРЕГИСТРИРОВАТЬСЯ"
                 size_hint_x: .9
                 pos_hint: {"center_x": .5}
@@ -74,4 +76,6 @@
                 theme_text_color: "Custom"
                 text_color: app.rjd_dark_red
                 pos_hint: {"center_x": .5}
-                on_release: app.root.current = 'login'
+                on_release:
+                    root.manager.transition.direction = "right"
+                    root.manager.current = "login"

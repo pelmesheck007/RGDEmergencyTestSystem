@@ -14,7 +14,6 @@ class UserBase(BaseModel):
     username: str
     fio: str
     email: Optional[EmailStr] = None
-    full_name: Optional[str] = None
     avatar_url: Optional[str] = None
 
 
@@ -25,7 +24,6 @@ class UserCreate(UserBase):
 
 class UserUpdate(BaseModel):
     fio: Optional[str]
-    full_name: Optional[str]
     avatar_url: Optional[str]
 
 

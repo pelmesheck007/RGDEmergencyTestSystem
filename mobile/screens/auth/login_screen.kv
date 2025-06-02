@@ -56,3 +56,10 @@
                 pos_hint: {"center_x": .5}
                 md_bg_color: app.rjd_dark_red
                 on_release: root.login()
+
+            MDTextButton:
+                text: "Нет аккаунта? Зарегистрироваться"
+                theme_text_color: "Custom"
+                text_color: app.rjd_dark_red
+                pos_hint: {"center_x": .5}
+                on_release: root.go_to_register()

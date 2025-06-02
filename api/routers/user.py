@@ -81,7 +81,6 @@ def delete_user(user_id: str, db: Session = Depends(get_db), _: str = Depends(re
 class UserUpdate(BaseModel):
     username: Optional[str] = None
     email: Optional[EmailStr] = None
-    full_name: Optional[str] = None
     avatar_url: Optional[str] = None
 
     @validator('username')

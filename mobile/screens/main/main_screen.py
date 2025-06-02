@@ -43,7 +43,6 @@ class MainScreen(MDScreen):
             user = app.user_data
             self.username = user.get('username', '')
             self.role = self.get_role_display(user.get('role', 'student'))
-            self.full_name = user.get('full_name', '')
             self.email = user.get('email', '')
             return True
         except Exception as e:

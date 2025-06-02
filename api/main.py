@@ -23,9 +23,9 @@ app.include_router(test.router)  # 👈 это должно быть в main.py
 from routers import theme_router
 app.include_router(theme_router.router)
 from routers import task_router
-
 app.include_router(task_router.router)
-
+from routers import answers
+app.include_router(answers.router)
 # Настройка CORS
 app.add_middleware(
     CORSMiddleware,

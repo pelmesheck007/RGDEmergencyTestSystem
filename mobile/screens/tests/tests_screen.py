@@ -6,6 +6,8 @@ import json
 import logging
 
 from kivymd.uix.label import MDLabel
+from kivymd.uix.snackbar import Snackbar
+
 from mobile.screens.base_screen import BaseScreen
 from kivymd.uix.list import OneLineAvatarIconListItem, IconLeftWidget
 from kivymd.uix.dialog import MDDialog
@@ -133,6 +135,14 @@ class TestsScreen(BaseScreen):
             text=self._format_test_details(test_data),
             size_hint=(0.8, None),
             buttons=[
+                # СЛЕВА: кнопка "Удалить" — добавлена первой
+                MDFlatButton(
+                    text="УДАЛИТЬ",
+                    theme_text_color="Custom",
+                    text_color=self.app.rjd_dark_red,
+                    on_release=self.confirm_delete_test
+                ),
+                # СПРАВА: кнопки "Закрыть" и "Начать тест"
                 MDFlatButton(
                     text="ЗАКРЫТЬ",
                     theme_text_color="Custom",
@@ -148,6 +158,88 @@ class TestsScreen(BaseScreen):
             ]
         )
         self.dialog.open()
+
+    def confirm_delete_test(self, *args):
+        """Подтверждение перед удалением теста"""
+        self.dialog.dismiss()
+        self.confirm_dialog = MDDialog(
+            title="Удаление теста",
+            text="Вы уверены, что хотите удалить тест?",
+            buttons=[
+                MDFlatButton(
+                    text="ОТМЕНА",
+                    on_release=lambda x: self.confirm_dialog.dismiss()
+                ),
+                MDFlatButton(
+                    text="ПОДТВЕРДИТЬ",
+                    text_color=self.app.rjd_dark_red,
+                    on_release=lambda x: self._execute_deletion()
+                )
+            ]
+        )
+        self.confirm_dialog.open()
+
+    def _execute_deletion(self):
+        """Подтвердить и выполнить удаление"""
+        self.confirm_dialog.dismiss()
+        self.delete_selected_test()
+
+    def delete_test(self, *args):
+        test_id = self.selected_test.get("id")
+        if not test_id:
+            return
+
+        import requests
+        try:
+            response = requests.delete(f"{self.app.api_base_url}/tests/{test_id}")
+            if response.status_code == 200:
+                Snackbar(text="Тест удалён").open()
+                self.confirm_dialog.dismiss()
+                self.refresh_test_list()  # обновление списка
+            else:
+                Snackbar(text="Ошибка при удалении").open()
+        except Exception as e:
+            Snackbar(text=f"Ошибка: {e}").open()
+
+    from kivy.network.urlrequest import UrlRequest
+    import json
+
+    def delete_selected_test(self):
+        """Удалить выбранный тест"""
+        test_id = self.selected_test.get('id')
+        if not test_id:
+            self.show_error("ID теста не найден")
+            return
+
+        if not hasattr(self.app, 'token') or not self.app.token:
+            self.show_error("Требуется авторизация")
+            return
+
+        headers = {
+            'Authorization': f'Bearer {self.app.token}',
+            'Content-Type': 'application/json'
+        }
+
+        def on_success(req, result):
+            Snackbar(text="Тест удалён успешно").open()
+            Clock.schedule_once(lambda dt: self.load_tests(), 0)
+
+        def on_error(req, error):
+            self.show_error(f"Ошибка удаления: {error}")
+
+        def on_failure(req, result):
+            self.show_error("Не удалось удалить тест")
+
+        UrlRequest(
+            f'{self.app.api_url}/tests/{test_id}',
+            on_success=on_success,
+            on_error=on_error,
+            on_failure=on_failure,
+            req_headers=headers,
+            req_body=None,
+            method='DELETE',
+            timeout=10
+        )
 
     def _format_test_details(self, test_data):
         """Форматирование деталей теста"""

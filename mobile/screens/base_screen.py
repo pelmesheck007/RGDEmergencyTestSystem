@@ -62,11 +62,6 @@ class BaseScreen(MDScreen):
         self.app.user_data = None
         self.app.root.current = 'login'
 
-    def show_loading(self, state=True):
-        """Показать/скрыть индикатор загрузки"""
-        if hasattr(self.ids, 'loading_spinner'):
-            self.ids.loading_spinner.active = state
-            self.loading = state
 
     def show_error(self, message):
         """Показать сообщение об ошибке"""
@@ -126,3 +121,11 @@ class BaseScreen(MDScreen):
             bg_color=[0, 0.7, 0, 1],  # Зеленый цвет
             duration=2
         ).open()
+
+    def show_loading(self, show=True):
+        try:
+            if hasattr(self, "ids") and "loading_spinner" in self.ids:
+                self.ids.loading_spinner.active = show
+        except ReferenceError:
+            pass  # объект экрана уничтожен
+

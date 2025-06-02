@@ -64,4 +64,9 @@ def get_tasks_with_answers(db: Session, test_id: str):
 
     return tasks_with_answers
 
-
+@router.get("/{test_id}/questions/")
+def get_test_questions(test_id: str, db: Session = Depends(get_db)):
+    tasks = get_tasks_with_answers(db, test_id)
+    if not tasks:
+        raise HTTPException(status_code=404, detail="Questions not found")
+    return tasks

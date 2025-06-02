@@ -61,6 +61,7 @@ class LoginScreen(MDScreen):
         app = MDApp.get_running_app()
         app.token = result['access_token']
         app.user_data = result['user']
+        app.user_id = result['user']['id']
 
         # Явное обновление данных перед переходом
         main_screen = app.root.get_screen('main')
@@ -106,3 +107,7 @@ class LoginScreen(MDScreen):
     def show_error(self, message):
         self.error_message = message
         toast(message)
+
+    def go_to_register(self):
+        self.manager.transition.direction = "left"
+        self.manager.current = "register"
