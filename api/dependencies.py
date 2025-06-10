@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional
 
 from .database import get_db
-from .models.user import User
+from .models.user import User, UserRole
 from .services.auth import verify_token  # Теперь этот импорт будет работать
 
 
@@ -31,3 +31,11 @@ async def get_current_user(
 
     return user
 
+
+def require_admin(user=Depends(get_current_user)):
+    if user.role != UserRole.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Административный доступ необходим"
+        )
+    return user.username  # или просто возвращаем что-то, можно None или user, если нужно

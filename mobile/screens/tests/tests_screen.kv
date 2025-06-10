@@ -26,7 +26,6 @@
                 pos_hint: {"top": 1}
                 size_hint_y: None
                 height: dp(56)
-            # Кнопка создаётся отдельно, вне ScrollView
             MDRaisedButton:
                 text: "Создать тест"
                 md_bg_color: app.rjd_dark_red
@@ -37,6 +36,36 @@
                 on_release: root.create_test()
                 opacity: 0 if root.can_create_test else 1
                 disabled:  root.can_create_test
+
+
+            MDSpinner:
+                id: loading_spinner
+                size_hint: None, None
+                size: dp(46), dp(46)
+                pos_hint: {'center_x': 0.5}
+                active: root.loading
+                color: app.rjd_dark_red
+
+            BoxLayout:
+                orientation: "horizontal"
+                spacing: "10dp"
+                size_hint_y: None
+                height: self.minimum_height
+                padding: "10dp"
+
+                MDDropDownItem:
+                    id: theme_filter
+                    text: root.selected_theme or "Все темы"
+                    hint_text: "Выберите тему"
+                    on_release: root.open_theme_dropdown()
+
+                MDDropDownItem:
+                    id: type_filter
+                    text: root.selected_test_type.capitalize() if root.selected_test_type != 'all' else "Все типы"
+                    hint_text: "Тип теста"
+                    on_release: root.open_type_dropdown()
+
+
 
 
             ScrollView:

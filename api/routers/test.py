@@ -4,7 +4,7 @@ from sqlalchemy import true
 from sqlalchemy.orm import Session
 from typing import List
 from api.database import get_db
-from api.models import Base, TestTask, Test
+from api.models import Base, Test, Task
 from api.schemas.test import TestCreate, TestUpdate, TestOut, QuestionOut
 from api.services import test_service
 
@@ -41,28 +41,6 @@ def delete_test(test_id: str, db: Session = Depends(get_db)):
     return {"detail": "Deleted successfully"}
 
 
-def get_tasks_with_answers(db: Session, test_id: str):
-    test_tasks = (
-        db.query(TestTask)
-        .join(Test, Test.id == TestTask.test_id)
-        .filter(Test.id == test_id)
-        .filter(Test.is_active.is_(true()))
-        .order_by(TestTask.order_number)
-        .all()
-    )
-
-    tasks_with_answers = []
-    for test_task in test_tasks:
-        task = test_task.task
-        variable_answers = task.variable_answers  # подтягиваются по relationship
-        tasks_with_answers.append({
-            "task": task,
-            "variable_answers": variable_answers,
-            "order_number": test_task.order_number,
-            "score_weight": test_task.score_weight
-        })
-
-    return tasks_with_answers
 
 @router.get("/{test_id}/questions/")
 def get_test_questions(test_id: str, db: Session = Depends(get_db)):
@@ -70,3 +48,33 @@ def get_test_questions(test_id: str, db: Session = Depends(get_db)):
     if not tasks:
         raise HTTPException(status_code=404, detail="Questions not found")
     return tasks
+
+
+def serialize_task(task: Task):
+    return {
+        "id": task.id,
+        "question": task.question,
+        "question_details": task.question_details,
+        "interaction_type": task.interaction_type,
+        "difficulty_level": task.difficulty_level,
+        "variable_answers": [
+            {
+                "id": va.id,
+                "string_answer": va.string_answer,
+                "truthful": va.truthful,
+                "order_number": va.order_number,
+                "explanation": va.explanation
+            } for va in task.variable_answers
+        ]
+    }
+
+def get_tasks_with_answers(db: Session, test_id: str):
+    tasks = (
+        db.query(Task)
+        .filter(Task.test_id == test_id)
+        .order_by(Task.difficulty_level)
+        .all()
+    )
+
+    return [serialize_task(task) for task in tasks]
+

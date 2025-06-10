@@ -384,8 +384,6 @@ class CreateTestScreen(BaseScreen):
         app = App.get_running_app()
         self.ids.theme_loader.active = True
 
-        from kivymd.uix.list import OneLineListItem
-
         def on_themes_loaded(req, result):
             self.ids.theme_loader.active = False
 
@@ -476,6 +474,7 @@ class CreateTestScreen(BaseScreen):
         self.ids.theme.text = new_theme["title"]
         toast("Тема создана")
         self.open_theme_menu()  # Обновляем меню
+
 
     def on_error(self, req, error):
         toast(f"Ошибка: {error}")

@@ -4,10 +4,9 @@ from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
-from api.models import ThemeTask
+
 from api.models.user import User, StudyGroup, StudyGroupMember
-from api.models.task import Task, VariableAnswer
-from api.models.test import Test, TestAnswer
+from api.models.test import Test, TestAnswer, Task, VariableAnswer
 from api.schemas.test import TaskCreate
 from api.schemas.theme_task import ThemeTaskOut
 from database import engine, SessionLocal, Base, get_db
@@ -19,13 +18,16 @@ from api.schemas.user import *
 app = FastAPI()
 from typing import List
 from api.routers import test
-app.include_router(test.router)  # 👈 это должно быть в main.py
+app.include_router(test.router)
 from routers import theme_router
 app.include_router(theme_router.router)
 from routers import task_router
 app.include_router(task_router.router)
 from routers import answers
 app.include_router(answers.router)
+from routers import scenario_test_router
+app.include_router(scenario_test_router.router)
+
 # Настройка CORS
 app.add_middleware(
     CORSMiddleware,

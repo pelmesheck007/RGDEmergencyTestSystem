@@ -1,8 +1,35 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 
 from pydantic.schema import UUID
+
+
+class VariableAnswerIn(BaseModel):
+    string_answer: str
+    truthful: bool
+    explanation: Optional[str] = None
+    order_number: Optional[int] = None
+
+
+class TaskIn(BaseModel):
+    question: str
+    question_details: Optional[str] = None
+    interaction_type: int
+    difficulty_level: int = 1
+    time_limit: Optional[int] = None
+    theme: Optional[str] = None
+    variable_answers: Optional[List[VariableAnswerIn]] = []
+
+
+class CreateTasksRequest(BaseModel):
+    test_id: str
+    tasks: List[TaskIn]
+
+
+
+
+
 
 
 class ThemeTaskBase(BaseModel):
@@ -11,14 +38,6 @@ class ThemeTaskBase(BaseModel):
     theme: Optional[str] = None
     order_number: Optional[int] = 0
     is_active: Optional[bool] = True
-
-
-class ThemeTaskCreate(ThemeTaskBase):
-    pass
-
-
-class ThemeTaskUpdate(ThemeTaskBase):
-    pass
 
 
 class ThemeTaskOut(ThemeTaskBase):

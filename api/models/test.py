@@ -26,39 +26,65 @@ class Test(Base):
     test_name = Column(String(256), nullable=False)
     description = Column(Text)
     creator_id = Column(String, ForeignKey('users.id'))
-    student_id = Column(String, ForeignKey('users.id'))
     creation_time = Column(DateTime, default=datetime.utcnow)
-    modified_time = Column(DateTime)
+    modified_time = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     time_limit = Column(Integer)
     passing_score = Column(Float)
     test_type = Column(SQLEnum(TestType), default=TestType.TRAINING)
-    is_random_order = Column(Boolean, default=False)
-    is_active = Column(Boolean, default=True)
-    attempts_limit = Column(Integer)
-    theme = Column(String(256))
 
-    author_id = Column(String, ForeignKey("users.id"))
-    tasks_associations = relationship("TestTask", back_populates="test", cascade="all, delete-orphan")
+    theme_id = Column(String, ForeignKey('theme.id'))
+
+    # Прямая связь с Task
+    tasks = relationship("Task", back_populates="test", cascade="all, delete-orphan")
     test_answers = relationship("TestAnswer", back_populates="test", cascade="all, delete-orphan")
 
-    creator = relationship("User", back_populates="created_tests", foreign_keys=[creator_id])
-    author = relationship("User", back_populates="authored_tests", foreign_keys=[author_id])
-    student = relationship("User", back_populates="assigned_tests", foreign_keys=[student_id])
+    creator = relationship("User", back_populates="created_tests")
+    theme = relationship("Theme", back_populates="tests")
+    assigned_groups = relationship("GroupAssignedTest", back_populates="test", cascade="all, delete-orphan")
 
-    theme_id = Column(String, ForeignKey('theme_tasks.id'))
-    theme_rel = relationship("ThemeTask", backref="tests")
+class Theme(Base):
+    __tablename__ = 'theme'
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    title = Column(String(256), nullable=False)
+    description = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime)
+
+    tests = relationship("Test", back_populates="theme")
 
 
-class TestTask(Base):
-    __tablename__ = 'test_tasks'
+class Task(Base):
+    __tablename__ = 'tasks'
 
-    test_id = Column(String, ForeignKey('tests.id'), primary_key=True)
-    task_id = Column(String, ForeignKey('tasks.id'), primary_key=True)
+    id = Column(String, primary_key=True, default=generate_uuid)
+    test_id = Column(String, ForeignKey('tests.id'), nullable=False)
+    question = Column(Text, nullable=False)
+    question_details = Column(Text)
+    interaction_type = Column(Integer, nullable=False)  # 1 - текст, 2 - множественный выбор
+    difficulty_level = Column(Integer, default=1)
+
+    test = relationship("Test", back_populates="tasks")
+    variable_answers = relationship("VariableAnswer", back_populates="task", cascade="all, delete-orphan")
+    answers = relationship("TaskAnswer", back_populates="task", cascade="all, delete-orphan")
+
+
+class VariableAnswer(Base):
+    __tablename__ = 'variable_answers'
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    task_id = Column(String, ForeignKey('tasks.id'), nullable=False)
+    string_answer = Column(Text, nullable=False)
+    truthful = Column(Boolean, nullable=False)
     order_number = Column(Integer, default=0)
-    score_weight = Column(Float, default=1.0)
+    explanation = Column(Text)
 
-    test = relationship("Test", back_populates="tasks_associations")
-    task = relationship("Task", back_populates="test_associations")
+    task = relationship("Task", back_populates="variable_answers")
+    selected_in_answers = relationship(
+        "TaskAnswerVariableAnswer",
+        back_populates="variable_answer",
+        cascade="all, delete-orphan"
+    )
 
 
 class TestAnswer(Base):
@@ -69,13 +95,46 @@ class TestAnswer(Base):
     test_id = Column(String, ForeignKey('tests.id'), nullable=False)
     start_datetime = Column(DateTime, default=datetime.utcnow)
     end_datetime = Column(DateTime)
-    passing_datetime = Column(DateTime)
     score = Column(Float, nullable=False)
-    max_possible_score = Column(Float, nullable=False)
     is_passed = Column(Boolean)
-    attempt_number = Column(Integer, default=1)
+
+    test = relationship("Test", back_populates="test_answers")
+    student = relationship("User", back_populates="test_answers")  # <-- добавь сюда!
+    task_answers = relationship("TaskAnswer", back_populates="test_answer", cascade="all, delete-orphan")
+
+
+class TaskAnswer(Base):
+    __tablename__ = 'task_answers'
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    test_answer_id = Column(String, ForeignKey('test_answers.id'), nullable=False)
+    task_id = Column(String, ForeignKey('tasks.id'), nullable=False)
+    student_id = Column(String, ForeignKey('users.id'), nullable=False)
+
+    string_answer = Column(Text)  # для текстовых ответов
+    is_correct = Column(Boolean)
+    score = Column(Float)
+    answer_date = Column(DateTime, default=datetime.utcnow)
     time_spent = Column(Integer)
 
-    student = relationship("User", back_populates="test_answers")
-    test = relationship("Test", back_populates="test_answers")
-    task_answers = relationship("TaskAnswer", back_populates="test_answer", cascade="all, delete-orphan")
+    test_answer = relationship("TestAnswer", back_populates="task_answers")
+    task = relationship("Task", back_populates="answers")
+    student = relationship("User", back_populates="task_answers")
+    selected_variable_answers = relationship(
+        "TaskAnswerVariableAnswer",
+        back_populates="task_answer",
+        cascade="all, delete-orphan"
+    )
+
+
+class TaskAnswerVariableAnswer(Base):
+    __tablename__ = 'task_answer_variable_answers'
+
+    task_answer_id = Column(String, ForeignKey('task_answers.id'), primary_key=True)
+    variable_answer_id = Column(String, ForeignKey('variable_answers.id'), primary_key=True)
+
+    task_answer = relationship("TaskAnswer", back_populates="selected_variable_answers")
+    variable_answer = relationship("VariableAnswer", back_populates="selected_in_answers")
+
+
+

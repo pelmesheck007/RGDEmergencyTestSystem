@@ -3,20 +3,17 @@ from sqlalchemy.orm import relationship
 from .base import Base
 
 # Импорт моделей
-from .user import User, UserProgress, StudyGroupMember, UserRole, StudyGroup
-from .task import Task, VariableAnswer, TaskAnswer, TaskAnswerVariableAnswer
-from .test import Test, TestTask, TestAnswer
-from .learning import LearningMaterial,  MaterialProgress, MaterialRating
-from .theme_tasks import ThemeTask
-
+from .user import User, StudyGroupMember, UserRole, StudyGroup, GroupAssignedTest
+from .test import Test, TestAnswer, Task, VariableAnswer, TaskAnswer, TaskAnswerVariableAnswer, Theme
+from .scenario_tests import ScenarioTest, ScenarioLog, ScenarioChoice, ScenarioStep
+from .system import Notification, SystemLog, UserSession
 # Указание всех экспортируемых объектов
 __all__ = [
     'Base', 'User', 'Task', 'VariableAnswer', 'TaskAnswer', 'TaskAnswerVariableAnswer',
-    'Test', 'TestTask', 'TestAnswer',
-    'LearningMaterial',
-    'ThemeTask', 'UserProgress', 'MaterialProgress', 'MaterialRating',
-    'StudyGroupMember',
-    'setup_models', 'UserRole', 'StudyGroup'
+    'Test', 'TestAnswer', 'Theme',
+    'StudyGroupMember', 'GroupAssignedTest',
+    'setup_models', 'UserRole', 'StudyGroup',
+    'ScenarioTest', 'ScenarioLog', 'ScenarioChoice', 'ScenarioStep'
 ]
 
 

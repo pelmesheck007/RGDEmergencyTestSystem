@@ -74,35 +74,36 @@ class LoginScreen(MDScreen):
         app.root.transition.direction = 'left'
 
     def handle_login_error(self, req, error):
-        error_msg = self.extract_error_message(req, error)
-        logging.error(f"Ошибка входа: {error_msg}")
-
-        self.ids.login_btn.disabled = False
-
+        self.ids.login_btn.disabled = False  # Разблокируем кнопку
 
         error_msg = "Ошибка сервера"
+
         try:
-            if isinstance(error, str):
-                error_msg = error
-            elif req and req.resp_status:
-                if req.resp_status == 404:
+            if req and hasattr(req, 'resp_status'):
+                print(f"Код ответа: {req.resp_status}")  # DEBUG
+                if req.resp_status == 401:
+                    error_msg = "Неверный логин или пароль"
+                elif req.resp_status == 404:
                     error_msg = "Сервер не найден (404)"
                 elif req.resp_status == 400:
-                    # Пытаемся получить детальное сообщение об ошибке
                     try:
-                        error_detail = json.loads(req.result).get('detail', 'Неверные данные')
-                        error_msg = f"Ошибка: {error_detail}"
+                        detail = json.loads(req.result).get('detail', 'Неверные данные')
+                        error_msg = detail
                     except:
                         error_msg = "Неверные данные"
                 else:
                     error_msg = f"Ошибка HTTP {req.resp_status}"
+            elif isinstance(error, str):
+                error_msg = error
+            else:
+                error_msg = "Неизвестная ошибка"
         except Exception as e:
-            print(f"Ошибка обработки ошибки: {e}")
+            logging.exception("Ошибка при обработке ошибки авторизации")
+            error_msg = "Ошибка обработки ответа"
 
+        logging.error(f"Ошибка входа: {error_msg}")
         self.show_error(error_msg)
         self.ids.password.text = ""
-
-
 
     def show_error(self, message):
         self.error_message = message

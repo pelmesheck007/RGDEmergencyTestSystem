@@ -1,21 +1,23 @@
-# tests_screen.py
-from kivy.properties import ListProperty, ObjectProperty, StringProperty, partial, BooleanProperty
+from datetime import datetime
+
+from kivy.app import App
+from kivy.properties import ListProperty, ObjectProperty, StringProperty, BooleanProperty
 from kivy.clock import Clock
 from kivy.network.urlrequest import UrlRequest
-import json
-import logging
-
+from kivymd.toast import toast
 from kivymd.uix.label import MDLabel
 from kivymd.uix.snackbar import Snackbar
-
-from mobile.screens.base_screen import BaseScreen
-from kivymd.uix.list import OneLineAvatarIconListItem, IconLeftWidget
+from kivymd.uix.menu import MDDropdownMenu
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.button import MDFlatButton
+from kivymd.uix.list import OneLineAvatarIconListItem, IconLeftWidget
 
+from mobile.screens.base_screen import BaseScreen
+from kivy.metrics import dp
 
-class TestListItem(OneLineAvatarIconListItem):
-    """Элемент списка тестов"""
+from kivymd.uix.list import TwoLineAvatarIconListItem
+
+class TestListItem(TwoLineAvatarIconListItem):
     test_data = ObjectProperty(None)
     icon = StringProperty("file-document")
 
@@ -26,44 +28,47 @@ class TestListItem(OneLineAvatarIconListItem):
 
 
 class TestsScreen(BaseScreen):
-    """Экран со списком тестов"""
     tests_list = ListProperty([])
+    scenario_tests_list = ListProperty([])
     selected_test = ObjectProperty(None, allownone=True)
-    dialog = ObjectProperty(None, allownone=True)
+    selected_theme = StringProperty("")
+    theme_menu = ObjectProperty(None)
+    type_menu = ObjectProperty(None)
     no_tests_message = StringProperty("Загрузка тестов...")
     can_create_test = BooleanProperty(False)
+    all_tests_list = ListProperty([])
+    selected_test_type = StringProperty("all")  # all, standard, scenario
 
+    test_themes = ListProperty(["Аварийные ситуации", "Отказ сигнализации", "Охрана труда"])
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.screen_title = "Тесты"
         self.show_menu_button = True
+        Clock.schedule_once(self._create_theme_menu, 0)
+        self.selected_theme = ""
+        self.selected_test_type = "all"
 
     def on_pre_enter(self, *args):
-        """Вызывается перед открытием экрана"""
         super().on_pre_enter(*args)
-
-        # Показываем кнопку создания теста только если роль admin или teacher
         self.can_create_test = getattr(self.app, "user_role", "") in ("admin", "teacher")
-        self.load_tests()
+        self.load_all_tests()
+
+    def load_all_tests(self):
+        self.show_loading(True)
+        self.load_standard_tests()
+        self.load_scenario_tests()
 
     def create_test(self, *args):
-        """Переход к созданию теста"""
         self.manager.current = "create_test"
 
-    def load_tests(self):
-        """Загрузка тестов с сервера"""
-        self.show_loading(True)
-        if not hasattr(self.app, 'token') or not self.app.token:
-            self.show_error("Требуется авторизация")
-            self.show_loading(False)
-            return
+    def show_loading(self, state):
+        self.loading = state
+        if hasattr(self.ids, 'loading_spinner'):
+            self.ids.loading_spinner.active = state
 
-        headers = {
-            'Authorization': f'Bearer {self.app.token}',
-            'Content-Type': 'application/json'
-        }
-
+    def load_standard_tests(self):
+        headers = self._auth_headers()
         UrlRequest(
             f'{self.app.api_url}/tests/',
             on_success=self.on_tests_load_success,
@@ -73,208 +78,283 @@ class TestsScreen(BaseScreen):
             timeout=10
         )
 
+    def load_scenario_tests(self):
+        headers = self._auth_headers()
+        UrlRequest(
+            f'{self.app.api_url}/scenario-tests/',
+            on_success=self.on_scenario_tests_load_success,
+            on_error=self.on_tests_load_error,
+            on_failure=self.on_tests_load_error,
+            req_headers=headers,
+            timeout=10
+        )
 
+    def _auth_headers(self):
+        if not hasattr(self.app, 'token') or not self.app.token:
+            return {}
+        return {'Authorization': f'Bearer {self.app.token}', 'Content-Type': 'application/json'}
 
     def on_tests_load_success(self, req, result):
-        """Обработка успешной загрузки"""
+        self.tests_list = result if isinstance(result, list) else []
+        self.update_tests_display()
         self.show_loading(False)
-        try:
-            if isinstance(result, list):
-                self.tests_list = result
-                self.update_tests_display()
-                if not result:
-                    self.no_tests_message = "Доступных тестов нет"
-            else:
-                self.show_error("Некорректный формат данных")
-        except Exception as e:
-            logging.error(f"Ошибка обработки тестов: {e}")
-            self.show_error(f"Ошибка обработки: {str(e)}")
+
+    def on_scenario_tests_load_success(self, req, result):
+        self.scenario_tests_list = result if isinstance(result, list) else []
+        self.update_tests_display()
+        self.show_loading(False)
 
     def on_tests_load_error(self, req, error):
-        """Обработка ошибки загрузки"""
         self.show_loading(False)
-        error_msg = "Неизвестная ошибка сервера"
-        if isinstance(error, dict):
-            error_msg = error.get('detail', str(error))
-        elif hasattr(req, 'resp_status'):
-            if req.resp_status == 401:
-                error_msg = "Требуется авторизация"
-            elif req.resp_status == 403:
-                error_msg = "Доступ запрещен"
-
-        self.show_error(f"Ошибка загрузки: {error_msg}")
         self.no_tests_message = "Не удалось загрузить тесты"
+        Snackbar(text="Ошибка загрузки тестов").open()
+
+    from datetime import datetime
 
     def update_tests_display(self):
-        """Обновление списка тестов в интерфейсе"""
         self.ids.tests_container.clear_widgets()
 
-        if not self.tests_list:
-            self.ids.tests_container.add_widget(
-                MDLabel(
-                    text=self.no_tests_message,
-                    halign="center",
-                    theme_text_color="Secondary"
-                )
-            )
+        def matches_theme(t):
+            return not self.selected_theme or t.get("theme") == self.selected_theme
+
+        def matches_type(t):
+            if self.selected_test_type == "standard":
+                return "test_name" in t
+            elif self.selected_test_type == "scenario":
+                return "title" in t
+            return True
+
+        all_tests = self.tests_list + self.scenario_tests_list
+        filtered = [t for t in all_tests if matches_theme(t) and matches_type(t)]
+
+        def get_date(t):
+            try:
+                return datetime.strptime(t.get("created_at", ""), "%Y-%m-%dT%H:%M:%S")
+            except:
+                return datetime.min
+
+        filtered.sort(key=get_date, reverse=True)
+
+        if not filtered:
+            self.ids.tests_container.add_widget(MDLabel(
+                text=self.no_tests_message,
+                halign="center",
+                theme_text_color="Secondary"
+            ))
             return
 
-        for test in self.tests_list:
+        for test in filtered:
+            is_scenario = "title" in test
             item = TestListItem(
-                text=test.get('test_name', 'Без названия'),
+                text=test.get("title" if is_scenario else "test_name", "Без названия"),
+                secondary_text=f"Тема: {test.get('theme', '—')}",
+                icon="script-text-outline" if is_scenario else "file-document",
                 test_data=test,
-                on_release=lambda _, t=test: self.show_test_details(t)
+                on_release=lambda _, t=test: (
+                    self.show_scenario_test_details(t) if is_scenario else self.show_test_details(t)
+                )
             )
             self.ids.tests_container.add_widget(item)
 
+    def _create_type_menu(self, *args):
+        items = [
+            {"text": "Все типы", "viewclass": "OneLineListItem", "on_release": lambda x="all": self.set_type_filter(x)},
+            {"text": "Обычные", "viewclass": "OneLineListItem",
+             "on_release": lambda x="standard": self.set_type_filter(x)},
+            {"text": "Сценарные", "viewclass": "OneLineListItem",
+             "on_release": lambda x="scenario": self.set_type_filter(x)},
+        ]
+        self.type_menu = MDDropdownMenu(
+            caller=self.ids.type_filter,
+            items=items,
+            width_mult=4
+        )
+
+
+
+    def set_theme_filter(self, theme):
+        self.selected_theme = theme
+        self.ids.theme_filter.text = theme or "Все темы"
+        if self.theme_menu:
+            self.theme_menu.dismiss()
+        self.update_tests_display()
+
     def show_test_details(self, test_data):
-        """Показать детали теста в диалоге"""
         self.selected_test = test_data
         self.dialog = MDDialog(
-            title=test_data.get('test_name', 'Информация о тесте'),
+            title=test_data.get('test_name', 'Инфо'),
             text=self._format_test_details(test_data),
-            size_hint=(0.8, None),
             buttons=[
-                # СЛЕВА: кнопка "Удалить" — добавлена первой
-                MDFlatButton(
-                    text="УДАЛИТЬ",
-                    theme_text_color="Custom",
-                    text_color=self.app.rjd_dark_red,
-                    on_release=self.confirm_delete_test
-                ),
-                # СПРАВА: кнопки "Закрыть" и "Начать тест"
-                MDFlatButton(
-                    text="ЗАКРЫТЬ",
-                    theme_text_color="Custom",
-                    text_color=self.app.rjd_dark_red,
-                    on_release=lambda x: self.dialog.dismiss()
-                ),
-                MDFlatButton(
-                    text="НАЧАТЬ ТЕСТ",
-                    theme_text_color="Custom",
-                    text_color=self.app.rjd_dark_red,
-                    on_release=self.start_test
-                )
+                MDFlatButton(text="НАЧАТЬ", text_color=self.app.rjd_dark_red, on_release=self.start_test),
+                MDFlatButton(text="ЗАКРЫТЬ", on_release=lambda x: self.dialog.dismiss())
             ]
         )
         self.dialog.open()
 
-    def confirm_delete_test(self, *args):
-        """Подтверждение перед удалением теста"""
-        self.dialog.dismiss()
-        self.confirm_dialog = MDDialog(
-            title="Удаление теста",
-            text="Вы уверены, что хотите удалить тест?",
+    def show_scenario_test_details(self, test_data):
+        self.selected_test = test_data
+        self.dialog = MDDialog(
+            title=test_data.get('title', 'Сценарий'),
+            text=test_data.get('description', 'Описание отсутствует'),
             buttons=[
-                MDFlatButton(
-                    text="ОТМЕНА",
-                    on_release=lambda x: self.confirm_dialog.dismiss()
-                ),
-                MDFlatButton(
-                    text="ПОДТВЕРДИТЬ",
-                    text_color=self.app.rjd_dark_red,
-                    on_release=lambda x: self._execute_deletion()
-                )
+                MDFlatButton(text="НАЧАТЬ", text_color=self.app.rjd_dark_red, on_release=self.start_scenario_test),
+                MDFlatButton(text="ЗАКРЫТЬ", on_release=lambda x: self.dialog.dismiss())
             ]
         )
-        self.confirm_dialog.open()
-
-    def _execute_deletion(self):
-        """Подтвердить и выполнить удаление"""
-        self.confirm_dialog.dismiss()
-        self.delete_selected_test()
-
-    def delete_test(self, *args):
-        test_id = self.selected_test.get("id")
-        if not test_id:
-            return
-
-        import requests
-        try:
-            response = requests.delete(f"{self.app.api_base_url}/tests/{test_id}")
-            if response.status_code == 200:
-                Snackbar(text="Тест удалён").open()
-                self.confirm_dialog.dismiss()
-                self.refresh_test_list()  # обновление списка
-            else:
-                Snackbar(text="Ошибка при удалении").open()
-        except Exception as e:
-            Snackbar(text=f"Ошибка: {e}").open()
-
-    from kivy.network.urlrequest import UrlRequest
-    import json
-
-    def delete_selected_test(self):
-        """Удалить выбранный тест"""
-        test_id = self.selected_test.get('id')
-        if not test_id:
-            self.show_error("ID теста не найден")
-            return
-
-        if not hasattr(self.app, 'token') or not self.app.token:
-            self.show_error("Требуется авторизация")
-            return
-
-        headers = {
-            'Authorization': f'Bearer {self.app.token}',
-            'Content-Type': 'application/json'
-        }
-
-        def on_success(req, result):
-            Snackbar(text="Тест удалён успешно").open()
-            Clock.schedule_once(lambda dt: self.load_tests(), 0)
-
-        def on_error(req, error):
-            self.show_error(f"Ошибка удаления: {error}")
-
-        def on_failure(req, result):
-            self.show_error("Не удалось удалить тест")
-
-        UrlRequest(
-            f'{self.app.api_url}/tests/{test_id}',
-            on_success=on_success,
-            on_error=on_error,
-            on_failure=on_failure,
-            req_headers=headers,
-            req_body=None,
-            method='DELETE',
-            timeout=10
-        )
-
-    def _format_test_details(self, test_data):
-        """Форматирование деталей теста"""
-        details = []
-        if 'description' in test_data and test_data['description']:
-            details.append(f"Описание: {test_data['description']}")
-        if 'time_limit' in test_data and test_data['time_limit']:
-            details.append(f"Лимит времени: {test_data['time_limit']} мин")
-        if 'passing_score' in test_data and test_data['passing_score']:
-            details.append(f"Проходной балл: {test_data['passing_score']}%")
-        if 'theme' in test_data and test_data['theme']:
-            details.append(f"Тема: {test_data['theme']}")
-        if 'attempts_limit' in test_data and test_data['attempts_limit']:
-            details.append(f"Попыток: {test_data['attempts_limit']}")
-
-        return "\n".join(details) if details else "Дополнительная информация отсутствует"
-
+        self.dialog.open()
 
     def start_test(self, *args):
-        """Начать выбранный тест"""
-        if self.dialog:
-            self.dialog.dismiss()
-
-        if not self.selected_test:
-            self.show_error("Тест не выбран")
-            return
-
-        test_id = self.selected_test.get('id')
-        if not test_id:
-            self.show_error("Неверный ID теста")
-            return
-
-        # Сохраняем ID теста в app
-        self.app.current_test_id = test_id
-
-        # Переход на экран прохождения теста
+        self.dialog.dismiss()
+        self.app.current_test_id = self.selected_test.get("id")
         self.manager.current = "test_taking"
+
+    def start_scenario_test(self, *args):
+        self.dialog.dismiss()
+        self.app.current_scenario_id = self.selected_test.get("id")
+        self.manager.current = "scenario_taking"
+
+    def _format_test_details(self, test_data):
+        fields = []
+        if test_data.get("description"):
+            fields.append(f"Описание: {test_data['description']}")
+        if test_data.get("time_limit"):
+            fields.append(f"Лимит времени: {test_data['time_limit']} мин")
+        if test_data.get("passing_score"):
+            fields.append(f"Проходной балл: {test_data['passing_score']}%")
+        if test_data.get("theme"):
+            fields.append(f"Тема: {test_data['theme']}")
+        if test_data.get("attempts_limit"):
+            fields.append(f"Попыток: {test_data['attempts_limit']}")
+        if test_data.get("created_at"):
+            fields.append(f"Создано: {test_data['created_at'].replace('T', ' ').split('.')[0]}")
+        return "\n".join(fields) if fields else "Информация отсутствует"
+
+    def _create_theme_menu(self, *args):
+        themes = self._collect_themes()
+        items = [{"text": "Все темы", "viewclass": "OneLineListItem",
+                  "on_release": lambda x="": self.set_theme_filter(x)}]
+        for theme in themes:
+            items.append({
+                "text": theme,
+                "viewclass": "OneLineListItem",
+                "on_release": lambda x=theme: self.set_theme_filter(x)
+            })
+
+        self.theme_menu = MDDropdownMenu(
+            caller=self.ids.theme_filter,
+            items=items,
+            width_mult=4
+        )
+
+    def set_type_filter(self, t_type):
+        self.selected_test_type = t_type
+        self.ids.type_filter.text = {
+            "all": "Все типы",
+            "standard": "Обычные",
+            "scenario": "Сценарные"
+        }.get(t_type, "Все типы")
+        if self.type_menu:
+            self.type_menu.dismiss()
+        self.update_tests_display()
+
+    def _collect_themes(self):
+        all_tests = self.tests_list + self.scenario_tests_list
+        themes = sorted(set(t.get("theme", "") for t in all_tests if t.get("theme")))
+        return themes
+
+    def load_themes(self):
+        app = App.get_running_app()
+
+        def on_themes_loaded(req, result):
+            self.ids.theme_loader.active = False
+
+            if not result or not isinstance(result, list):
+                toast("Нет доступных тем или ошибка формата данных")
+                return
+
+            print("Полученные темы с сервера:", result)
+            self.themes = result
+
+            menu_items = [{
+                "text": "Все темы",
+                "viewclass": "OneLineListItem",
+                "on_release": lambda x="": self.set_selected_theme(x)
+            }]
+
+            for theme in self.themes:
+                title = theme.get("title")
+                if title:
+                    menu_items.append({
+                        "text": title,
+                        "viewclass": "OneLineListItem",
+                        "on_release": lambda x=theme: self.set_selected_theme(x)
+                    })
+
+            self.theme_menu = MDDropdownMenu(
+                caller=self.ids.theme_filter,
+                items=menu_items,
+                width_mult=4
+            )
+
+        self.ids.theme_loader.active = True
+
+        UrlRequest(
+            url=f"{app.api_url}/themes/",
+            req_headers={"Authorization": f"Bearer {app.token}"},
+            on_success=on_themes_loaded,
+            on_failure=lambda req, err: toast(f"Ошибка загрузки тем: {err}"),
+            on_error=lambda req, err: toast(f"Ошибка сети: {err}")
+        )
+
+    def open_theme_dropdown(self):
+        if hasattr(self, 'theme_menu'):
+            self.theme_menu.open()
+        else:
+            self.load_themes()
+
+    def set_selected_theme(self, theme):
+        self.selected_theme = theme if isinstance(theme, str) else theme.get("title")
+        self.ids.theme_filter.set_item(self.selected_theme or "Все темы")
+        self.theme_menu.dismiss()
+        self.update_tests_display()
+
+    def open_type_dropdown(self):
+        if hasattr(self, 'type_menu'):
+            self.type_menu.open()
+            return
+
+        menu_items = [
+            {
+                "text": "Все типы",
+                "viewclass": "OneLineListItem",
+                "on_release": lambda x="all": self.set_test_type_filter(x)
+            },
+            {
+                "text": "Обычные",
+                "viewclass": "OneLineListItem",
+                "on_release": lambda x="standard": self.set_test_type_filter(x)
+            },
+            {
+                "text": "Сценарные",
+                "viewclass": "OneLineListItem",
+                "on_release": lambda x="scenario": self.set_test_type_filter(x)
+            },
+        ]
+
+        self.type_menu = MDDropdownMenu(
+            caller=self.ids.type_filter,
+            items=menu_items,
+            width_mult=3
+        )
+        self.type_menu.open()
+
+    def set_test_type_filter(self, test_type):
+        self.selected_test_type = test_type
+        text = "Все типы" if test_type == "all" else test_type.capitalize()
+        self.ids.type_filter.set_item(text)
+        self.type_menu.dismiss()
+        self.update_tests_display()
+
+
+
 

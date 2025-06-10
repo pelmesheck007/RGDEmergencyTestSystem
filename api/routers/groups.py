@@ -2,24 +2,32 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from api.models import StudyGroup, StudyGroupMember, User, UserRole
 from api.database import get_db
+from pydantic import BaseModel
 
-router = APIRouter()
+router = APIRouter(prefix="/groups", tags=["Groups"])
 
 
-@router.get("/groups/{group_id}/members/")
+class UsernameInput(BaseModel):
+    username: str
+
+
+class RoleInput(BaseModel):
+    role: str
+
+
+@router.get("/{group_id}/members/")
 def get_group_members(group_id: str, db: Session = Depends(get_db)):
     group = db.query(StudyGroup).filter(StudyGroup.id == group_id).first()
     if not group:
         raise HTTPException(status_code=404, detail="Группа не найдена")
 
     members = db.query(User).join(StudyGroupMember).filter(StudyGroupMember.group_id == group_id).all()
-    return [{"id": m.id, "username": m.username, "fio": m.fio, "role": m.role} for m in members]
+    return [{"id": m.id, "username": m.username, "full_name": m.full_name, "role": m.role} for m in members]
 
 
-@router.post("/groups/{group_id}/add_member/")
-def add_member(group_id: str, username_data: dict, db: Session = Depends(get_db)):
-    username = username_data.get("username")
-    user = db.query(User).filter(User.username == username).first()
+@router.post("/{group_id}/add_member/")
+def add_member(group_id: str, data: UsernameInput, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.username == data.username).first()
     if not user:
         raise HTTPException(status_code=404, detail="Пользователь не найден")
 
@@ -33,7 +41,7 @@ def add_member(group_id: str, username_data: dict, db: Session = Depends(get_db)
     return {"detail": "Участник добавлен"}
 
 
-@router.delete("/groups/{group_id}/members/{user_id}")
+@router.delete("/{group_id}/members/{user_id}")
 def remove_member(group_id: str, user_id: str, db: Session = Depends(get_db)):
     member = db.query(StudyGroupMember).filter_by(group_id=group_id, user_id=user_id).first()
     if not member:
@@ -44,16 +52,19 @@ def remove_member(group_id: str, user_id: str, db: Session = Depends(get_db)):
     return {"detail": "Участник удалён"}
 
 
-@router.post("/groups/{group_id}/members/{user_id}/assign-role/")
-def assign_role(group_id: str, user_id: str, role_data: dict, db: Session = Depends(get_db)):
-    role = role_data.get("role")
-    if role not in UserRole.__members__:
+@router.post("/{group_id}/members/{user_id}/assign-role/")
+def assign_role(group_id: str, user_id: str, data: RoleInput, db: Session = Depends(get_db)):
+    if data.role not in UserRole.__members__:
         raise HTTPException(status_code=400, detail="Некорректная роль")
 
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="Пользователь не найден")
+    # Проверяем, состоит ли пользователь в группе
+    member = db.query(StudyGroupMember).filter_by(group_id=group_id, user_id=user_id).first()
+    if not member:
+        raise HTTPException(status_code=404, detail="Пользователь не состоит в группе")
 
-    user.role = role
+    # Меняем глобальную роль пользователя
+    user = db.query(User).filter(User.id == user_id).first()
+    user.role = data.role
     db.commit()
-    return {"detail": f"Роль {role} назначена"}
+
+    return {"detail": f"Глобальная роль пользователя изменена на '{data.role}'"}
