@@ -38,6 +38,7 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     registration_date = Column(DateTime, default=datetime.utcnow)
     full_name = Column(String(256))
+    avatar_url = Column(String(512), default=True)
 
     groups = relationship("StudyGroupMember", back_populates="user")
 

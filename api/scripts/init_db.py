@@ -16,14 +16,14 @@ def create_test_data(db: Session):
         # 1. Users
         admin = User(
             username="admin",
-            email="admin@trainingsys.local",
+            email="admin@mail.ru",
             hashed_password=get_password_hash("admin"),
             role="admin",
             full_name="Гл Администратор"
         )
         teacher = User(
             username="teacher1",
-            email="instructor@trainingsys.local",
+            email="instructor@mail.ru",
             hashed_password=get_password_hash("teacher1"),
             role="teacher",
             position='Прорводник',
@@ -31,7 +31,7 @@ def create_test_data(db: Session):
         )
         student = User(
             username="student1",
-            email="operator@trainingsys.local",
+            email="operator@mail.ru",
             hashed_password=get_password_hash("student1"),
             role="student",
             position='Проводник',
