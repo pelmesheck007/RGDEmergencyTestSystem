@@ -2,18 +2,24 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 import os
-
 from api.models.base import Base
 
-# Для SQLite используем относительный путь к файлу БД
-SQLALCHEMY_DATABASE_URL = "sqlite:///./railway_training.db"
+# Путь к SQLite-файлу
+DB_PATH = "./railway_training.db"
+SQLALCHEMY_DATABASE_URL = f"sqlite:///{DB_PATH}"
 
-# Создаем синхронный движок для SQLite
+# Удаление файла, если он существует
+if os.path.exists(DB_PATH):
+    os.remove(DB_PATH)
+    print("🗑️ Старый файл базы данных удален.")
+
+# Создание нового движка
 engine = create_engine(
     SQLALCHEMY_DATABASE_URL,
-    connect_args={"check_same_thread": False},  # Нужно для SQLite
-    echo=True  # Логирование SQL-запросов
+    connect_args={"check_same_thread": False},
+    echo=True  # Включить лог запросов
 )
+
 
 
 

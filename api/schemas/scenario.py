@@ -14,7 +14,6 @@ class ScenarioTestCreate(ScenarioTestBase):
 
 class ScenarioTestOut(ScenarioTestBase):
     id: str
-    is_active: bool
     created_at: datetime
 
     class Config:

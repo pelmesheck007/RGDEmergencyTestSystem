@@ -16,6 +16,16 @@ class ScenarioTest(Base):
     title = Column(String(256), nullable=False)
     description = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
+    theme_id = Column(String, ForeignKey('theme.id'), index=True)
+    creator_id = Column(String, ForeignKey('users.id'), index=True)
+
+    creation_time = Column(DateTime, default=datetime.utcnow)
+    modified_time = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    time_limit = Column(Integer)
+
+    creator = relationship("User", back_populates="created_tests_scenario")
+    assigned_groups = relationship("GroupAssignedTest", back_populates="test_scenario", cascade="all, delete-orphan")
+    theme = relationship("Theme", back_populates="scenario_tests")
 
     steps = relationship("ScenarioStep", back_populates="scenario_test", cascade="all, delete-orphan")
     logs = relationship("ScenarioLog", back_populates="scenario", cascade="all, delete-orphan")

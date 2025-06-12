@@ -44,7 +44,7 @@ class User(Base):
 
     task_answers = relationship("TaskAnswer", back_populates="student")
     created_tests = relationship("Test", back_populates="creator")
-
+    created_tests_scenario = relationship("ScenarioTest", back_populates="creator")
     scenario_logs = relationship("ScenarioLog", back_populates="user")
     sessions = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
     logs = relationship("SystemLog", back_populates="user", cascade="all, delete-orphan")
@@ -66,10 +66,12 @@ class StudyGroupMember(Base):
 class GroupAssignedTest(Base):
     __tablename__ = "group_assigned_tests"
 
-    group_id = Column(String, ForeignKey("study_groups.id"), primary_key=True)
-    test_id = Column(String, ForeignKey("tests.id"), primary_key=True)
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    group_id = Column(String, ForeignKey("study_groups.id"))
+    test_id = Column(String, ForeignKey("tests.id"), nullable=True)
+    scenario_test_id = Column(String, ForeignKey("scenario_tests.id"), nullable=True)
     assigned_at = Column(DateTime, default=datetime.utcnow)
 
     group = relationship("StudyGroup", back_populates="assigned_tests")
     test = relationship("Test", back_populates="assigned_groups")
-
+    test_scenario = relationship("ScenarioTest", back_populates="assigned_groups")

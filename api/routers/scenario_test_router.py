@@ -14,7 +14,7 @@ router = APIRouter(prefix="/scenario-tests", tags=["Scenario Tests"])
 
 @router.get("/", response_model=List[ScenarioTestOut])
 def list_scenarios(db: Session = Depends(get_db)):
-    return db.query(ScenarioTest).filter(ScenarioTest.is_active.is_(True)).all()
+    return db.query(ScenarioTest).all()
 
 
 @router.get("/{scenario_id}", response_model=ScenarioTestOut)

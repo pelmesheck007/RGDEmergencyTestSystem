@@ -12,7 +12,7 @@ class UserRole(str, Enum):
 
 class UserBase(BaseModel):
     username: str
-    fio: str
+    full_name: str
     email: Optional[EmailStr] = None
     avatar_url: Optional[str] = None
 

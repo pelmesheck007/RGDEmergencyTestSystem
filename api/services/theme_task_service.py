@@ -1,19 +1,16 @@
 # services/theme_task_service.py
 
 from sqlalchemy.orm import Session
-from api.models.theme_tasks import ThemeTask
+from api.models.test import Theme
 from uuid import uuid4
 from datetime import datetime
 
 
 def create_theme_task(db: Session, title: str, description: str = None, theme: str = None, order_number: int = 0):
-    new_task = ThemeTask(
+    new_task = Theme(
         id=str(uuid4()),
         title=title,
         description=description,
-        theme=theme,
-        order_number=order_number,
-        is_active=True,
         created_at=datetime.utcnow()
     )
     db.add(new_task)
@@ -25,7 +22,7 @@ def create_theme_task(db: Session, title: str, description: str = None, theme: s
 
 
 def update_theme_task(db: Session, task_id: str, data: dict):
-    task = db.query(ThemeTask).filter(ThemeTask.id == task_id).first()
+    task = db.query(Theme).filter(Theme.id == task_id).first()
     if not task:
         return None
     for key, value in data.items():
@@ -36,7 +33,7 @@ def update_theme_task(db: Session, task_id: str, data: dict):
 
 
 def delete_theme_task(db: Session, task_id: str):
-    task = db.query(ThemeTask).filter(ThemeTask.id == task_id).first()
+    task = db.query(Theme).filter(Theme.id == task_id).first()
     if task:
         db.delete(task)
         db.commit()
@@ -44,24 +41,20 @@ def delete_theme_task(db: Session, task_id: str):
 
 
 def get_theme_task(db: Session, task_id: str):
-    return db.query(ThemeTask).filter(ThemeTask.id == task_id).first()
+    return db.query(Theme).filter(Theme.id == task_id).first()
 
 
 def get_theme_tasks(
     db: Session,
     theme: str = None,
-    only_active: bool = True,
     order_by: str = 'order_number'
 ):
-    query = db.query(ThemeTask)
-    if only_active:
-        query = query.filter(ThemeTask.is_active == True)
+    query = db.query(Theme)
+
     if theme:
-        query = query.filter(ThemeTask.theme == theme)
+        query = query.filter(Theme.title == theme)
 
     if order_by == 'created_at':
-        query = query.order_by(ThemeTask.created_at)
-    else:
-        query = query.order_by(ThemeTask.order_number)
+        query = query.order_by(Theme.created_at)
 
     return query.all()

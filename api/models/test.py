@@ -52,6 +52,7 @@ class Theme(Base):
     updated_at = Column(DateTime)
 
     tests = relationship("Test", back_populates="theme")
+    scenario_tests = relationship("ScenarioTest", back_populates="theme", cascade="all, delete-orphan")
 
 
 class Task(Base):
