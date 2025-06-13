@@ -12,14 +12,18 @@ def create_themes(db):
     return theme1, theme2, theme3
 
 
-def create_test_with_tasks_and_answers(db, teacher, student, group):
+def create_test_with_tasks_and_answers(db, teacher, student, group, themes):
+    theme1, theme2, theme3 = themes
     test = Test(
         test_name="Аттестация по ЧС",
         description="Тест по действиям в условиях нештатных ситуаций",
         creator_id=teacher.id,
         test_type=TestType.TRAINING,
         passing_score=1.0,
+        theme_id=theme1.id,
         time_limit=20
+
+
     )
     db.add(test)
     db.flush()

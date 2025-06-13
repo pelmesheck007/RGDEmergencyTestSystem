@@ -1,3 +1,9 @@
+from pydantic import BaseModel, EmailStr, validator
+from enum import Enum
+from typing import Optional
+from datetime import datetime
+
+
 from pydantic import BaseModel, EmailStr
 from enum import Enum
 from typing import Optional
@@ -23,22 +29,37 @@ class UserCreate(UserBase):
 
 
 class UserUpdate(BaseModel):
-    fio: Optional[str]
-    avatar_url: Optional[str]
+    username: Optional[str] = None
+    full_name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    avatar_url: Optional[str] = None
 
 
 class UserOut(UserBase):
     id: str
     role: UserRole
-    is_active: bool
     registration_date: datetime
 
     class Config:
         orm_mode = True
 
 
-class UserRegister(BaseModel):
+class UserRegister(UserCreate):
+    pass
+
+    @validator('username')
+    def username_validator(cls, v):
+        if v is not None and len(v) < 3:
+            raise ValueError("Username must be at least 3 characters")
+        return v
+
+
+class LoginRequest(BaseModel):
     username: str
-    fio: str
-    email: Optional[EmailStr]
     password: str
+
+
+class UserLogin(BaseModel):
+    username: str
+    password: str
+

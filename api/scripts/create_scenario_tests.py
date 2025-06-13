@@ -3,11 +3,12 @@ from api.models.scenario_tests import ScenarioTest, ScenarioStep, ScenarioChoice
 
 
 
-def create_scenario_tests(db, student, theme):
+def create_scenario_tests(db, student, themes):
+    theme1, theme2, theme3 = themes
     scenario = ScenarioTest(
         title="Отказ светофора на перегоне",
         description="Пошаговая проверка реакции на отказ сигнализации",
-        theme_id=theme.id
+        theme_id=theme1.id
     )
     db.add(scenario)
     db.flush()
@@ -46,7 +47,7 @@ def create_scenario_tests(db, student, theme):
     scenario2 = ScenarioTest(
         title="Авария на химическом заводе",
         description="Действия в случае утечки опасного вещества",
-        theme_id=theme.id
+        theme_id=theme2.id
     )
     db.add(scenario2)
     db.flush()

@@ -3,6 +3,8 @@ from sqlalchemy.orm import Session
 from api.models import StudyGroup, StudyGroupMember, User, UserRole
 from api.database import get_db
 from pydantic import BaseModel
+from typing import List
+from api.schemas.group import StudyGroupOut, StudyGroupCreate, StudyGroupUpdate
 
 router = APIRouter(prefix="/groups", tags=["Groups"])
 
@@ -13,6 +15,35 @@ class UsernameInput(BaseModel):
 
 class RoleInput(BaseModel):
     role: str
+
+
+
+@router.get("/", response_model=List[StudyGroupOut])
+def get_groups(db: Session = Depends(get_db)):
+    return db.query(StudyGroup).all()
+
+
+@router.post("/", response_model=StudyGroupOut)
+def create_group(group_data: StudyGroupCreate, db: Session = Depends(get_db)):
+    new_group = StudyGroup(**group_data.dict())
+    db.add(new_group)
+    db.commit()
+    db.refresh(new_group)
+    return new_group
+
+
+@router.put("/{group_id}", response_model=StudyGroupOut)
+def update_group(group_id: str, group_data: StudyGroupUpdate, db: Session = Depends(get_db)):
+    group = db.query(StudyGroup).filter_by(id=group_id).first()
+    if not group:
+        raise HTTPException(status_code=404, detail="Группа не найдена")
+
+    for key, value in group_data.dict(exclude_unset=True).items():
+        setattr(group, key, value)
+
+    db.commit()
+    db.refresh(group)
+    return group
 
 
 @router.get("/{group_id}/members/")
