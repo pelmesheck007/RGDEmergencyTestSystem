@@ -3,17 +3,16 @@ from datetime import datetime
 from kivy.app import App
 from kivy.properties import ListProperty, ObjectProperty, StringProperty, BooleanProperty
 from kivy.clock import Clock
-from kivy.network.urlrequest import UrlRequest
 from kivymd.toast import toast
 from kivymd.uix.label import MDLabel
 from kivymd.uix.snackbar import Snackbar
 from kivymd.uix.menu import MDDropdownMenu
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.button import MDFlatButton
-from kivymd.uix.list import OneLineAvatarIconListItem, IconLeftWidget
+from kivymd.uix.list import IconLeftWidget
+from kivy.network.urlrequest import UrlRequest
 
 from mobile.screens.base_screen import BaseScreen
-from kivy.metrics import dp
 
 from kivymd.uix.list import TwoLineAvatarIconListItem
 
@@ -156,30 +155,6 @@ class TestsScreen(BaseScreen):
             )
             self.ids.tests_container.add_widget(item)
 
-    def _create_type_menu(self, *args):
-        items = [
-            {"text": "Все типы", "viewclass": "OneLineListItem", "on_release": lambda x="all": self.set_type_filter(x)},
-            {"text": "Обычные", "viewclass": "OneLineListItem",
-             "on_release": lambda x="standard": self.set_type_filter(x)},
-            {"text": "Сценарные", "viewclass": "OneLineListItem",
-             "on_release": lambda x="scenario": self.set_type_filter(x)},
-        ]
-        self.type_menu = MDDropdownMenu(
-            caller=self.ids.type_filter,
-            items=items,
-            width_mult=4
-        )
-
-
-
-    def set_theme_filter(self, theme):
-        self.selected_theme = theme
-        self.ids.theme_filter.text = theme or "Все темы"
-        if self.theme_menu:
-            self.theme_menu.dismiss()
-        self.update_tests_display()
-
-
     def show_test_details(self, test_data):
         self.selected_test = test_data
         self.dialog = MDDialog(
@@ -263,8 +238,6 @@ class TestsScreen(BaseScreen):
         except Exception as e:
             Snackbar(text=f"Ошибка: {e}").open()
 
-    from kivy.network.urlrequest import UrlRequest
-    import json
 
     def delete_selected_test(self):
         """Удалить выбранный тест"""
@@ -329,6 +302,20 @@ class TestsScreen(BaseScreen):
             fields.append(f"Создано: {test_data['created_at'].replace('T', ' ').split('.')[0]}")
         return "\n".join(fields) if fields else "Информация отсутствует"
 
+    def _create_type_menu(self, *args):
+        items = [
+            {"text": "Все типы", "viewclass": "OneLineListItem", "on_release": lambda x="all": self.set_type_filter(x)},
+            {"text": "Обычные", "viewclass": "OneLineListItem",
+             "on_release": lambda x="standard": self.set_type_filter(x)},
+            {"text": "Сценарные", "viewclass": "OneLineListItem",
+             "on_release": lambda x="scenario": self.set_type_filter(x)},
+        ]
+        self.type_menu = MDDropdownMenu(
+            caller=self.ids.type_filter,
+            items=items,
+            width_mult=4
+        )
+
     def _create_theme_menu(self, *args):
         themes = self._collect_themes()
         items = [{"text": "Все темы", "viewclass": "OneLineListItem",
@@ -357,61 +344,11 @@ class TestsScreen(BaseScreen):
             self.type_menu.dismiss()
         self.update_tests_display()
 
-    def _collect_themes(self):
-        all_tests = self.tests_list + self.scenario_tests_list
-        themes = sorted(set(t.get("theme", "") for t in all_tests if t.get("theme")))
-        return themes
-
-    def load_themes(self):
-        app = App.get_running_app()
-
-        def on_themes_loaded(req, result):
-            print("Loading themes...")
-            self.ids.theme_filter.active = False
-
-            if not result or not isinstance(result, list):
-                toast("Нет доступных тем или ошибка формата данных")
-                return
-
-            print("Полученные темы с сервера:", result)
-            self.themes = result
-
-            menu_items = [{
-                "text": "Все темы",
-                "viewclass": "OneLineListItem",
-                "on_release": lambda x="": self.set_selected_theme(x)
-            }]
-
-            for theme in self.themes:
-                title = theme.get("title")
-                if title:
-                    menu_items.append({
-                        "text": title,
-                        "viewclass": "OneLineListItem",
-                        "on_release": lambda x=theme: self.set_selected_theme(x)
-                    })
-
-            self.theme_menu = MDDropdownMenu(
-                caller=self.ids.theme_filter,
-                items=menu_items,
-                width_mult=4
-            )
-
-        self.ids.theme_filter.active = True
-
-        UrlRequest(
-            url=f"{app.api_url}/themes/",
-            req_headers={"Authorization": f"Bearer {app.token}"},
-            on_success=on_themes_loaded,
-            on_failure=lambda req, err: toast(f"Ошибка загрузки тем: {err}"),
-            on_error=lambda req, err: toast(f"Ошибка сети: {err}")
-        )
-
-
-    def set_selected_theme(self, theme):
-        self.selected_theme = theme if isinstance(theme, str) else theme.get("title")
-        self.ids.theme_filter.set_item(self.selected_theme or "Все темы")
-        self.theme_menu.dismiss()
+    def set_theme_filter(self, theme):
+        self.selected_theme = theme
+        self.ids.theme_filter.text = theme or "Все темы"
+        if self.theme_menu:
+            self.theme_menu.dismiss()
         self.update_tests_display()
 
     def open_type_dropdown(self):
@@ -444,25 +381,10 @@ class TestsScreen(BaseScreen):
         )
         self.type_menu.open()
 
-    def set_test_type_filter(self, test_type):
-        self.selected_test_type = test_type
-        text = "Все типы" if test_type == "all" else test_type.capitalize()
-        self.ids.type_filter.set_item(text)
-        self.type_menu.dismiss()
-        self.update_tests_display()
-
     def open_theme_dropdown(self):
-        if hasattr(self, 'theme_menu'):
-            self.load_themes()
-            self.theme_menu.open()
-
-
-    def set_theme_and_close(self, theme_obj, dialog):
-        self.selected_theme_id = theme_obj["id"]
-        self.ids.theme.text = theme_obj["title"]
-        dialog.dismiss()
-
-    def open_theme_menu(self):
+        if hasattr(self, 'theme_filter'):
+            self.theme_filter.open()
+            return
         app = App.get_running_app()
         self.ids.theme_filter.active = True
 
@@ -475,24 +397,27 @@ class TestsScreen(BaseScreen):
 
             self.themes = result
 
-            menu_items = [
-                {
-                    "viewclass": "OneLineListItem",
-                    "text": theme.get("title", "Без названия"),
-                    "on_release": lambda t=theme: self.set_theme_and_close(t)
-                }
-                for theme in self.themes
-            ]
+            menu_items = [{
+                "text": "Все темы",
+                "viewclass": "OneLineListItem",
+                "on_release": lambda x="": self.set_selected_theme(x)
+            }]
 
-            if self.menu:
-                self.menu.dismiss()
+            for theme in self.themes:
+                title = theme.get("title")
+                if title:
+                    menu_items.append({
+                        "text": title,
+                        "viewclass": "OneLineListItem",
+                        "on_release": lambda x=theme: self.set_selected_theme(x)
+                    })
 
-            self.menu = MDDropdownMenu(
-                caller=self.ids.theme,
+            self.theme_menu = MDDropdownMenu(
+                caller=self.ids.theme_filter,
                 items=menu_items,
                 width_mult=4
             )
-            self.menu.open()
+            self.theme_menu.open()
 
         UrlRequest(
             url=f"{app.api_url}/themes/",
@@ -502,7 +427,37 @@ class TestsScreen(BaseScreen):
             on_error=lambda req, err: toast(f"Ошибка сети: {err}")
         )
 
+    def set_test_type_filter(self, test_type):
+        self.selected_test_type = test_type
+        text = "Все типы" if test_type == "all" else test_type.capitalize()
+        self.ids.type_filter.set_item(text)
+        self.type_menu.dismiss()
+        self.update_tests_display()
 
+    def set_selected_theme(self, theme):
+        self.selected_theme = theme if isinstance(theme, str) else theme.get("title")
+        display_text = self.selected_theme or "Все темы"
+        self.ids.theme_filter.set_item(display_text)
+        if self.theme_menu:
+            self.theme_menu.dismiss()
+        self.update_tests_display()
 
+    def _collect_themes(self):
+        all_tests = self.tests_list + self.scenario_tests_list
+        themes = sorted(set(t.get("theme", "") for t in all_tests if t.get("theme")))
+        return themes
+
+    def load_tests(self):
+        """Загрузка тестов с сервера"""
+        self.show_loading(True)
+        if not hasattr(self.app, 'token') or not self.app.token:
+            self.show_error("Требуется авторизация")
+            self.show_loading(False)
+            return
+
+        headers = {
+            'Authorization': f'Bearer {self.app.token}',
+            'Content-Type': 'application/json'
+        }
 
 
