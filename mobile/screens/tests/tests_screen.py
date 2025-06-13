@@ -179,6 +179,7 @@ class TestsScreen(BaseScreen):
             self.theme_menu.dismiss()
         self.update_tests_display()
 
+
     def show_test_details(self, test_data):
         self.selected_test = test_data
         self.dialog = MDDialog(
@@ -197,11 +198,110 @@ class TestsScreen(BaseScreen):
             title=test_data.get('title', 'Сценарий'),
             text=test_data.get('description', 'Описание отсутствует'),
             buttons=[
-                MDFlatButton(text="НАЧАТЬ", text_color=self.app.rjd_dark_red, on_release=self.start_scenario_test),
-                MDFlatButton(text="ЗАКРЫТЬ", on_release=lambda x: self.dialog.dismiss())
-            ]
+                # СЛЕВА: кнопка "Удалить" — добавлена первой
+                MDFlatButton(
+                    text="УДАЛИТЬ",
+                    theme_text_color="Custom",
+                    text_color=self.app.rjd_dark_red,
+                    on_release=self.confirm_delete_test
+                ),
+                # СПРАВА: кнопки "Закрыть" и "Начать тест"
+                MDFlatButton(
+                    text="ЗАКРЫТЬ",
+                    theme_text_color="Custom",
+                    text_color=self.app.rjd_dark_red,
+                    on_release=lambda x: self.dialog.dismiss()
+                ),
+                MDFlatButton(
+                    text="НАЧАТЬ ТЕСТ",
+                    theme_text_color="Custom",
+                    text_color=self.app.rjd_dark_red,
+                    on_release=self.start_test
+                )            ]
         )
         self.dialog.open()
+
+    def confirm_delete_test(self, *args):
+        """Подтверждение перед удалением теста"""
+        self.dialog.dismiss()
+        self.confirm_dialog = MDDialog(
+            title="Удаление теста",
+            text="Вы уверены, что хотите удалить тест?",
+            buttons=[
+                MDFlatButton(
+                    text="ОТМЕНА",
+                    on_release=lambda x: self.confirm_dialog.dismiss()
+                ),
+                MDFlatButton(
+                    text="ПОДТВЕРДИТЬ",
+                    text_color=self.app.rjd_dark_red,
+                    on_release=lambda x: self._execute_deletion()
+                )
+            ]
+        )
+        self.confirm_dialog.open()
+
+    def _execute_deletion(self):
+        """Подтвердить и выполнить удаление"""
+        self.confirm_dialog.dismiss()
+        self.delete_selected_test()
+
+    def delete_test(self, *args):
+        test_id = self.selected_test.get("id")
+        if not test_id:
+            return
+
+        import requests
+        try:
+            response = requests.delete(f"{self.app.api_base_url}/tests/{test_id}")
+            if response.status_code == 200:
+                Snackbar(text="Тест удалён").open()
+                self.confirm_dialog.dismiss()
+                self.refresh_test_list()  # обновление списка
+            else:
+                Snackbar(text="Ошибка при удалении").open()
+        except Exception as e:
+            Snackbar(text=f"Ошибка: {e}").open()
+
+    from kivy.network.urlrequest import UrlRequest
+    import json
+
+    def delete_selected_test(self):
+        """Удалить выбранный тест"""
+        test_id = self.selected_test.get('id')
+        if not test_id:
+            self.show_error("ID теста не найден")
+            return
+
+        if not hasattr(self.app, 'token') or not self.app.token:
+            self.show_error("Требуется авторизация")
+            return
+
+        headers = {
+            'Authorization': f'Bearer {self.app.token}',
+            'Content-Type': 'application/json'
+        }
+
+        def on_success(req, result):
+            Snackbar(text="Тест удалён успешно").open()
+            Clock.schedule_once(lambda dt: self.load_tests(), 0)
+
+        def on_error(req, error):
+            self.show_error(f"Ошибка удаления: {error}")
+
+        def on_failure(req, result):
+            self.show_error("Не удалось удалить тест")
+
+        UrlRequest(
+            f'{self.app.api_url}/tests/{test_id}',
+            on_success=on_success,
+            on_error=on_error,
+            on_failure=on_failure,
+            req_headers=headers,
+            req_body=None,
+            method='DELETE',
+            timeout=10
+        )
 
     def start_test(self, *args):
         self.dialog.dismiss()
@@ -266,7 +366,8 @@ class TestsScreen(BaseScreen):
         app = App.get_running_app()
 
         def on_themes_loaded(req, result):
-            self.ids.theme_loader.active = False
+            print("Loading themes...")
+            self.ids.theme_filter.active = False
 
             if not result or not isinstance(result, list):
                 toast("Нет доступных тем или ошибка формата данных")
@@ -296,7 +397,7 @@ class TestsScreen(BaseScreen):
                 width_mult=4
             )
 
-        self.ids.theme_loader.active = True
+        self.ids.theme_filter.active = True
 
         UrlRequest(
             url=f"{app.api_url}/themes/",
@@ -306,11 +407,6 @@ class TestsScreen(BaseScreen):
             on_error=lambda req, err: toast(f"Ошибка сети: {err}")
         )
 
-    def open_theme_dropdown(self):
-        if hasattr(self, 'theme_menu'):
-            self.theme_menu.open()
-        else:
-            self.load_themes()
 
     def set_selected_theme(self, theme):
         self.selected_theme = theme if isinstance(theme, str) else theme.get("title")
@@ -319,8 +415,8 @@ class TestsScreen(BaseScreen):
         self.update_tests_display()
 
     def open_type_dropdown(self):
-        if hasattr(self, 'type_menu'):
-            self.type_menu.open()
+        if hasattr(self, 'type_filter'):
+            self.type_filter.open()
             return
 
         menu_items = [
@@ -354,6 +450,58 @@ class TestsScreen(BaseScreen):
         self.ids.type_filter.set_item(text)
         self.type_menu.dismiss()
         self.update_tests_display()
+
+    def open_theme_dropdown(self):
+        if hasattr(self, 'theme_menu'):
+            self.load_themes()
+            self.theme_menu.open()
+
+
+    def set_theme_and_close(self, theme_obj, dialog):
+        self.selected_theme_id = theme_obj["id"]
+        self.ids.theme.text = theme_obj["title"]
+        dialog.dismiss()
+
+    def open_theme_menu(self):
+        app = App.get_running_app()
+        self.ids.theme_filter.active = True
+
+        def on_themes_loaded(req, result):
+            self.ids.theme_filter.active = False
+
+            if not result or not isinstance(result, list):
+                toast("Нет доступных тем или ошибка формата данных")
+                return
+
+            self.themes = result
+
+            menu_items = [
+                {
+                    "viewclass": "OneLineListItem",
+                    "text": theme.get("title", "Без названия"),
+                    "on_release": lambda t=theme: self.set_theme_and_close(t)
+                }
+                for theme in self.themes
+            ]
+
+            if self.menu:
+                self.menu.dismiss()
+
+            self.menu = MDDropdownMenu(
+                caller=self.ids.theme,
+                items=menu_items,
+                width_mult=4
+            )
+            self.menu.open()
+
+        UrlRequest(
+            url=f"{app.api_url}/themes/",
+            req_headers={"Authorization": f"Bearer {app.token}"},
+            on_success=on_themes_loaded,
+            on_failure=lambda req, err: toast(f"Ошибка загрузки тем: {err}"),
+            on_error=lambda req, err: toast(f"Ошибка сети: {err}")
+        )
+
 
 
 

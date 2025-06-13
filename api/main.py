@@ -91,6 +91,5 @@ def create_task(task: TaskCreate, db: Session = Depends(get_db)):
     return {"id": new_task.id}
 
 
-
 if __name__ == "__main__":
     uvicorn.run(app, host="localhost", port=8000)
