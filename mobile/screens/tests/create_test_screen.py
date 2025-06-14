@@ -344,16 +344,15 @@ class CreateTestScreen(BaseScreen):
     def on_tasks_created(self):
         try:
             toast("Задания сохранены!")
-            tests_screen = self.manager.get_screen("tests")
-            if hasattr(tests_screen, 'on_pre_enter'):
-                tests_screen.on_pre_enter()
-            #self.manager.current = "tests"
-
+            self.manager.current = "tests"  # переключиться на экран тестов
             return True
         except Exception as e:
             Logger.error(f"TasksScreen: Error saving tasks - {str(e)}")
             toast("Ошибка при сохранении заданий!")
             return False
+
+    def __del__(self):
+        Logger.error("TestsScreen was deleted")
 
     def get_task_data(self):
         question = self.ids.question_field.text.strip()

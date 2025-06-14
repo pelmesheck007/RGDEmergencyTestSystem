@@ -30,14 +30,25 @@ class TestUpdate(TestBase):
     pass
 
 
-class TestOut(TestBase):
+class ThemeOut(BaseModel):
     id: str
-    creation_time: Optional[datetime]
-    modified_time: Optional[datetime]
+    title: Optional[str] = None
 
     class Config:
         orm_mode = True
 
+
+class TestOut(BaseModel):
+    id: str
+    test_name: str
+    description: Optional[str] = None
+    time_limit: Optional[int] = None
+    passing_score: Optional[float] = None
+    theme: Optional[ThemeOut] = None
+    creation_time: datetime  # <--- имя поля, как в SQLAlchemy-модели!
+
+    class Config:
+        orm_mode = True
 
 class AnswerOut(BaseModel):
     id: str

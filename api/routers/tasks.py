@@ -24,13 +24,11 @@ def create_tasks(
     for i, task_data in enumerate(data.tasks):
         task = Task(
             id=str(uuid4()),
-            test_id=data.test_id,  # 👈 теперь привязка к тесту напрямую
+            test_id=data.test_id,
             question=task_data.question,
-            question_details=task_data.question_details,
             interaction_type=task_data.interaction_type,
             difficulty_level=task_data.difficulty_level,
-            created_date=datetime.utcnow(),
-            modified_date=datetime.utcnow()
+
         )
 
         if not batch:

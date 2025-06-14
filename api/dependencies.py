@@ -22,7 +22,7 @@ async def get_current_user(
     token = authorization.split(" ")[1]
     user_id = verify_token(token)  # Проверяем токен
 
-    user = await db.get(User, user_id)
+    user = db.get(User, user_id)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

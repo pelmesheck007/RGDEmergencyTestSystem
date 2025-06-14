@@ -62,10 +62,13 @@ class TestsScreen(BaseScreen):
     def create_test(self, *args):
         self.manager.current = "create_test"
 
-    def show_loading(self, state):
-        self.loading = state
-        if hasattr(self.ids, 'loading_spinner'):
-            self.ids.loading_spinner.active = state
+    def show_loading(self, value):
+        try:
+            if hasattr(self.ids, 'loading_spinner'):
+                self.ids.loading_spinner.active = value
+        except ReferenceError:
+            # Объект уже уничтожен, игнорируем
+            pass
 
     def load_standard_tests(self):
         headers = self._auth_headers()
@@ -109,8 +112,6 @@ class TestsScreen(BaseScreen):
         self.no_tests_message = "Не удалось загрузить тесты"
         Snackbar(text="Ошибка загрузки тестов").open()
 
-    from datetime import datetime
-
     def update_tests_display(self):
         self.ids.tests_container.clear_widgets()
 
@@ -147,7 +148,7 @@ class TestsScreen(BaseScreen):
             is_scenario = "title" in test
             item = TestListItem(
                 text=test.get("title" if is_scenario else "test_name", "Без названия"),
-                secondary_text=f"Тема: {test.get('theme', '—')}",
+                secondary_text=f"Тема: {test.get('theme', {}).get('title', '—')}",
                 icon="script-text-outline" if is_scenario else "file-document",
                 test_data=test,
                 on_release=lambda _, t=test: (
@@ -172,7 +173,7 @@ class TestsScreen(BaseScreen):
         self.selected_test = test_data
         self.dialog = MDDialog(
             title=test_data.get('title', 'Сценарий'),
-            text=test_data.get('description', 'Описание отсутствует'),
+            text=self._format_test_details(test_data),
             buttons=[
                 # СЛЕВА: кнопка "Удалить" — добавлена первой
                 MDFlatButton(
@@ -193,7 +194,7 @@ class TestsScreen(BaseScreen):
                     theme_text_color="Custom",
                     text_color=self.app.rjd_dark_red,
                     on_release=self.start_test
-                )            ]
+                )]
         )
         self.dialog.open()
 
@@ -222,8 +223,11 @@ class TestsScreen(BaseScreen):
         self.confirm_dialog.dismiss()
         self.delete_selected_test()
 
+
     def delete_test(self, *args):
         test_id = self.selected_test.get("id")
+        self.load_all_tests()
+        self.update_tests_display()
         if not test_id:
             return
 
@@ -239,9 +243,7 @@ class TestsScreen(BaseScreen):
         except Exception as e:
             Snackbar(text=f"Ошибка: {e}").open()
 
-
     def delete_selected_test(self):
-        """Удалить выбранный тест"""
         test_id = self.selected_test.get('id')
         if not test_id:
             self.show_error("ID теста не найден")
@@ -256,6 +258,11 @@ class TestsScreen(BaseScreen):
             'Content-Type': 'application/json'
         }
 
+        # Определяем, сценарный тест или нет
+        is_scenario = "title" in self.selected_test  # по ключу 'title' определяем
+
+        url = f'{self.app.api_url}/scenario-tests/{test_id}' if is_scenario else f'{self.app.api_url}/tests/{test_id}'
+
         def on_success(req, result):
             Snackbar(text="Тест удалён успешно").open()
             Clock.schedule_once(lambda dt: self.load_tests(), 0)
@@ -267,7 +274,7 @@ class TestsScreen(BaseScreen):
             self.show_error("Не удалось удалить тест")
 
         UrlRequest(
-            f'{self.app.api_url}/tests/{test_id}',
+            url,
             on_success=on_success,
             on_error=on_error,
             on_failure=on_failure,
@@ -287,35 +294,25 @@ class TestsScreen(BaseScreen):
         self.app.current_scenario_id = self.selected_test.get("id")
         self.manager.current = "scenario_taking"
 
-    def _format_test_details(self, test_data):
-        fields = []
-        if test_data.get("description"):
-            fields.append(f"Описание: {test_data['description']}")
-        if test_data.get("time_limit"):
-            fields.append(f"Лимит времени: {test_data['time_limit']} мин")
-        if test_data.get("passing_score"):
-            fields.append(f"Проходной балл: {test_data['passing_score']}%")
-        if test_data.get("theme"):
-            fields.append(f"Тема: {test_data['theme']}")
-        if test_data.get("attempts_limit"):
-            fields.append(f"Попыток: {test_data['attempts_limit']}")
-        if test_data.get("created_at"):
-            fields.append(f"Создано: {test_data['created_at'].replace('T', ' ').split('.')[0]}")
-        return "\n".join(fields) if fields else "Информация отсутствует"
 
+    def _format_test_details(self, test_data):
+        fields = [
+            f"Описание: {test_data.get('description', '—')}",
+            f"Лимит времени: {test_data.get('time_limit', '—')} мин",
+            f"Проходной балл: {test_data.get('passing_score', '—')}%",
+            f"Тема: {test_data.get('theme', {}).get('title', '—')}",
+            f"Попыток: {test_data.get('attempts_limit', '—')}",
+        ]
+
+        created_at = test_data.get("created_at")
+        if created_at:
+            fields.append(f"Создано: {created_at.replace('T', ' ').split('.')[0]}")
+
+        return "\n".join(fields)
 
     def load_tests(self):
         """Загрузка тестов с сервера"""
-        self.show_loading(True)
-        if not hasattr(self.app, 'token') or not self.app.token:
-            self.show_error("Требуется авторизация")
-            self.show_loading(False)
-            return
-
-        headers = {
-            'Authorization': f'Bearer {self.app.token}',
-            'Content-Type': 'application/json'
-        }
+        self.load_all_tests()
 
     def open_type_dropdown(self):
         self.dropdown_manager.open_type_menu()

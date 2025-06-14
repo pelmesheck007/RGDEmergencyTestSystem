@@ -12,13 +12,24 @@ class ScenarioTestCreate(ScenarioTestBase):
     pass
 
 
-class ScenarioTestOut(ScenarioTestBase):
+class ThemeOut(BaseModel):
     id: str
-    created_at: datetime
+    title: Optional[str] = None
 
     class Config:
         orm_mode = True
 
+
+class ScenarioTestOut(BaseModel):
+    id: str
+    title: str
+    description: Optional[str] = None
+    time_limit: Optional[int] = None
+    theme: Optional[ThemeOut] = None
+    creation_time: datetime
+
+    class Config:
+        orm_mode = True
 
 class ScenarioChoiceOut(BaseModel):
     id: str

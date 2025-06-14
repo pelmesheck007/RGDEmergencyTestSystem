@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from typing import List
 
 from api.database import get_db
@@ -14,7 +14,12 @@ router = APIRouter(prefix="/scenario-tests", tags=["Scenario Tests"])
 
 @router.get("/", response_model=List[ScenarioTestOut])
 def list_scenarios(db: Session = Depends(get_db)):
-    return db.query(ScenarioTest).all()
+    tests = (
+        db.query(ScenarioTest)
+        .options(selectinload(ScenarioTest.theme))
+        .all()
+    )
+    return tests
 
 
 @router.get("/{scenario_id}", response_model=ScenarioTestOut)

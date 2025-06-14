@@ -12,11 +12,11 @@ from database import get_db
 
 app = FastAPI()
 
-from routers import user,test, theme_router, task_router, answers, scenario_test_router, groups, auth
+from routers import user,test, theme_router, tasks, answers, scenario_test_router, groups, auth
 app.include_router(user.router)
 app.include_router(test.router)
 app.include_router(theme_router.router)
-app.include_router(task_router.router)
+app.include_router(tasks.router)
 app.include_router(answers.router)
 app.include_router(scenario_test_router.router)
 app.include_router(groups.router)
@@ -69,26 +69,6 @@ def delete_user_as_admin(user_id: str, token: str = Depends(oauth2_scheme), db: 
     db.delete(user)
     db.commit()
     return {"detail": "User deleted by admin"}
-
-
-@app.post("/tasks/")
-def create_task(task: TaskCreate, db: Session = Depends(get_db)):
-    new_task = Task(
-        **task.dict(exclude={"variable_answers"})
-    )
-    new_task.count_variables = len(task.variable_answers)
-    db.add(new_task)
-    db.flush()
-
-    for answer in task.variable_answers:
-        db.add(VariableAnswer(
-            task_id=new_task.id,
-            string_answer=answer.string_answer,
-            truthful=answer.truthful
-        ))
-
-    db.commit()
-    return {"id": new_task.id}
 
 
 if __name__ == "__main__":

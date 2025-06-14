@@ -1,7 +1,7 @@
 # routers/test_router.py
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import true
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 from typing import List
 from api.database import get_db
 from api.models import Base, Test, Task
@@ -12,8 +12,13 @@ from api.services.test_service import get_tasks_with_answers
 router = APIRouter(prefix="/tests", tags=["Tests"])
 
 @router.get("/", response_model=List[TestOut])
-def list_tests(db: Session = Depends(get_db)):
-    return test_service.get_tests(db)
+def get_tests(db: Session = Depends(get_db)):
+    tests = (
+        db.query(Test)
+        .options(selectinload(Test.theme))
+        .all()
+    )
+    return tests
 
 @router.post("/", response_model=TestOut)
 def create_test(data: TestCreate, db: Session = Depends(get_db)):
