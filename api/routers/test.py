@@ -55,6 +55,18 @@ def get_test_questions(test_id: str, db: Session = Depends(get_db)):
     tasks = get_tasks_with_answers(db, test_id)
     if not tasks:
         raise HTTPException(status_code=404, detail="Questions not found")
-    return tasks
+
+    test = db.query(Test).filter(Test.id == test_id).first()
+    if not test:
+        raise HTTPException(status_code=404, detail="Test not found")
+
+    return {
+        "questions": tasks,
+        "passing_score": test.passing_score,
+        "time_limit": test.time_limit,
+        "test_name": test.test_name,
+        "max_score": len(tasks),  # или подсчитать вес, если баллы разные
+    }
+
 
 

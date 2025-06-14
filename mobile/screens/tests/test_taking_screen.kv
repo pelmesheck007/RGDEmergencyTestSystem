@@ -14,6 +14,16 @@
             md_bg_color: app.rjd_white
             radius: [12]
 
+            MDLabel:
+                id: timer_label
+                text: "Осталось времени: 00:00"
+                halign: "center"
+                theme_text_color: "Secondary"
+                font_style: "Subtitle1"
+                size_hint_y: None
+                height: self.texture_size[1]
+
+
             MDTopAppBar:
                 title: "Вопрос {}/{}".format(root.current_index + 1, len(root.questions) if root.questions else 1)
                 right_action_items: [["arrow-left", lambda x: root.back_to_previous()]]
@@ -39,7 +49,7 @@
 
                     MDLabel:
                         id: question_label
-                        text: root.questions[root.current_index]["task"]["question"] if root.questions else "Загрузка..."
+                        text: root.questions[root.current_index]["question"] if root.questions else "Загрузка..."
                         font_style: "H6"
                         halign: "center"
                         theme_text_color: "Primary"
@@ -60,5 +70,5 @@
                 size: dp(120), dp(48)
                 md_bg_color: app.rjd_dark_red
                 text_color: app.rjd_white
-                #on_press: root.submit_test_result()
-                on_press: root.back_to_previous()
+                on_press: root.go_to_next_question()
+
