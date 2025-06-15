@@ -1,7 +1,7 @@
 import json
 
 from kivy.network.urlrequest import UrlRequest
-from kivy.properties import ListProperty, DictProperty, NumericProperty, Clock
+from kivy.properties import ListProperty, DictProperty, NumericProperty, Clock, StringProperty
 from kivy.uix.togglebutton import ToggleButton
 from kivymd.uix.button import MDFlatButton
 from kivymd.uix.dialog import MDDialog
@@ -13,10 +13,18 @@ class TestTakingScreen(BaseScreen):
     questions = ListProperty([])
     current_index = NumericProperty(0)
     selected_answers = DictProperty({})
+    test_type = StringProperty("standard")  # "standard" или "scenario"
+    selected_test_id = StringProperty()
+
 
     def on_pre_enter(self):
-        self.load_test_questions()
         self.remaining_time_label = self.ids.timer_label
+        if self.test_type == "standard":
+            self.load_normal_test()
+        else:
+            self.start_scenario()
+        if self.selected_test_id:
+            self.load_test_data()
 
     def on_questions_loaded(self, req, result):
         print("DEBUG: Ответ от сервера:", result)
@@ -98,20 +106,19 @@ class TestTakingScreen(BaseScreen):
             timeout=10
         )
 
-
     def go_to_next_question(self):
-        # Проверим, выбрал ли пользователь ответ на текущий вопрос
-        if self.current_task_id not in self.selected_answers:
-            from kivymd.toast import toast
-            toast("Пожалуйста, выберите ответ перед продолжением")
-            return
+        if self.test_type == "normal":
+            if self.current_task_id not in self.selected_answers:
+                from kivymd.toast import toast
+                toast("Пожалуйста, выберите ответ перед продолжением")
+                return
 
-        # Перейдем к следующему вопросу, если он есть
-        if self.current_index + 1 < len(self.questions):
-            self.current_index += 1
-            self.display_question(self.current_index)
+            if self.current_index + 1 < len(self.questions):
+                self.current_index += 1
+                self.display_question(self.current_index)
+            else:
+                self.submit_test_result()
         else:
-            # Последний вопрос — отправляем результаты
             self.submit_test_result()
 
     def display_question(self, index):
@@ -191,3 +198,202 @@ class TestTakingScreen(BaseScreen):
     def go_to_main_screen(self, *args):
         self.results_dialog.dismiss()
         self.manager.current = "main"
+
+    def load_normal_test(self):
+        self.load_test_questions()  # твой существующий метод
+
+    def load_scenario_test(self):
+        headers = {
+            'Authorization': f'Bearer {self.app.token}',
+            'Content-Type': 'application/json'
+        }
+        # Получаем первый шаг сценария
+        UrlRequest(
+            f"{self.app.api_url}/scenario-tests/{self.app.current_test_id}/steps",
+            req_headers=headers,
+            on_success=self.on_scenario_steps_loaded,
+            on_error=self.on_load_error,
+            on_failure=self.on_load_error,
+            timeout=10
+        )
+
+    def on_scenario_steps_loaded(self, req, result):
+        # result — список шагов сценария
+        if not isinstance(result, list) or len(result) == 0:
+            from kivymd.toast import toast
+            toast("Не удалось загрузить шаги сценария")
+            return
+        self.scenario_steps = result
+        self.current_index = 0
+        self.display_scenario_step(self.current_index)
+
+    def display_scenario_step(self, index):
+        step = self.scenario_steps[index]
+        self.current_task_id = step["id"]
+
+        self.ids.question_label.text = step.get("text", "Нет текста шага")
+        self.ids.answers_box.clear_widgets()
+
+        for choice in step.get("choices", []):
+            btn = ToggleButton(
+                text=choice["choice_text"],
+                group="answers",
+                allow_no_selection=False,
+                size_hint_y=None,
+                height="40dp"
+            )
+            btn.bind(on_press=lambda btn_instance, c_id=choice["id"]: self.select_scenario_choice(c_id))
+            self.ids.answers_box.add_widget(btn)
+
+    def select_scenario_choice(self, choice_id):
+        # Сохраняем выбор для текущего шага
+        self.selected_answers[self.current_task_id] = [choice_id]
+
+        # Переход к следующему шагу
+        if self.current_index + 1 < len(self.scenario_steps):
+            self.current_index += 1
+            self.display_scenario_step(self.current_index)
+        else:
+            # Конец сценария — отправляем результат
+            self.submit_scenario_result()
+
+    def submit_scenario_result(self):
+        headers = {"Authorization": f"Bearer {self.app.token}", "Content-Type": "application/json"}
+
+        data = {
+            "scenario_id": self.app.current_test_id,
+            "user_id": self.app.user_id,
+            "answers": [
+                {
+                    "step_id": step_id,
+                    "choice_ids": choice_ids
+                }
+                for step_id, choice_ids in self.selected_answers.items()
+            ]
+        }
+
+        UrlRequest(
+            f"{self.app.api_url}/scenario-tests/{self.app.current_test_id}/log",
+            req_body=json.dumps(data),
+            req_headers=headers,
+            on_success=self.on_submit_success,
+            on_error=self.on_submit_error,
+            method='POST'
+        )
+
+    def load_test_data(self):
+        # В зависимости от типа загружаем тест с разного эндпоинта
+        if self.test_type == "standard":
+            url = f"{self.app.api_url}/tests/{self.selected_test_id}"
+        else:
+            url = f"{self.app.api_url}/scenario-tests/{self.selected_test_id}"
+
+        headers = {}
+
+        UrlRequest(
+            url,
+            on_success=self.on_test_data_loaded,
+            on_error=self.on_test_data_error,
+            on_failure=self.on_test_data_error,
+            req_headers=headers,
+            timeout=10
+        )
+
+    def on_test_data_loaded(self, req, result):
+        # Здесь можно заполнить UI тестом, результатом загрузки
+        print(f"Тест загружен ({self.test_type}):", result)
+        # Например, отобразить вопросы, описание и т.п.
+
+    def on_test_data_error(self, req, error):
+        from kivymd.toast import toast
+        toast(f"Ошибка загрузки теста: {error}")
+
+    def start_test(self):
+        # Запуск теста, в зависимости от типа можно показывать разный интерфейс
+        if self.test_type == "standard":
+            # логика старта стандартного теста
+            print("Старт стандартного теста")
+        else:
+            # логика старта сценарного теста
+            print("Старт сценарного теста")
+
+    def start_scenario(self):
+        headers = {'Authorization': f'Bearer {self.app.token}'}
+        UrlRequest(
+            f"{self.app.api_url}/scenario-tests/{self.app.current_test_id}/start",
+            req_headers=headers,
+            on_success=self.on_scenario_step_loaded,
+            on_error=self.on_load_error,
+            on_failure=self.on_load_error
+        )
+
+    def on_scenario_step_loaded(self, req, result):
+        # result — это один шаг с choices
+        self.current_step = result
+        self.display_scenario_step_data(result)
+
+    def display_scenario_step_data(self, step):
+        self.ids.question_label.text = step["text"]
+        self.ids.answers_box.clear_widgets()
+        for choice in step.get("choices", []):
+            btn = ToggleButton(
+                text=choice["choice_text"],
+                group="answers",
+                allow_no_selection=False,
+                size_hint_y=None,
+                height="40dp"
+            )
+            btn.bind(on_press=lambda btn_inst, c=choice: self.make_choice(step["id"], c["id"]))
+            self.ids.answers_box.add_widget(btn)
+
+    def make_choice(self, step_id, choice_id):
+        data = {
+            "step_id": step_id,
+            "choice_id": choice_id,
+            "user_id": self.app.user_id,
+            "time_taken": 0
+        }
+        headers = {'Authorization': f'Bearer {self.app.token}', 'Content-Type': 'application/json'}
+        UrlRequest(
+            f"{self.app.api_url}/scenario-tests/{self.app.current_test_id}/step",
+            req_body=json.dumps(data),
+            req_headers=headers,
+            on_success=self.on_choice_response,
+            on_error=self.on_load_error,
+            on_failure=self.on_load_error,
+            method="POST"
+        )
+
+    def on_choice_response(self, req, result):
+        print("Ответ от сервера на выбор:", result)
+
+        if result.get("end"):
+            self.show_scenario_result_dialog(result)
+        else:
+            next_step = result.get("next_step")
+            if next_step:
+                self.current_step = next_step
+                self.display_scenario_step_data(next_step)
+            else:
+                print("❗ Нет next_step в ответе. Сценарий завис.")
+                from kivymd.toast import toast
+                toast("Сценарий не может продолжиться: сервер не прислал следующий шаг.")
+
+    def show_scenario_result_dialog(self, result):
+        message = result.get("message", "Сценарий завершён.")
+        next_step = result.get("next_step", {})
+        final_text = next_step.get("text", "")
+
+        content = f"{message}\n\n{final_text}" if final_text else message
+
+        self.results_dialog = MDDialog(
+            title="Завершение сценария",
+            text=content,
+            size_hint=(0.8, None),
+            height="250dp",
+            buttons=[
+                MDFlatButton(text="Закрыть", on_release=lambda x: self.results_dialog.dismiss()),
+                MDFlatButton(text="На главную", on_release=self.go_to_main_screen)
+            ],
+        )
+        self.results_dialog.open()

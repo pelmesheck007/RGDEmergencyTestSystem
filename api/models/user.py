@@ -50,6 +50,7 @@ class User(Base):
     logs = relationship("SystemLog", back_populates="user", cascade="all, delete-orphan")
     notifications = relationship("Notification", back_populates="user")
     test_answers = relationship("TestAnswer", back_populates="student")
+    scenario_results = relationship('ScenarioResult', back_populates='user')
 
 
 class StudyGroupMember(Base):

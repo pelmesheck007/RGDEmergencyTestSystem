@@ -30,6 +30,7 @@ class ScenarioTest(Base):
     steps = relationship("ScenarioStep", back_populates="scenario_test", cascade="all, delete-orphan")
     logs = relationship("ScenarioLog", back_populates="scenario", cascade="all, delete-orphan")
 
+    scenario = relationship('ScenarioResult', back_populates='scenario')
 
 class ScenarioStep(Base):
     __tablename__ = 'scenario_steps'
@@ -38,7 +39,7 @@ class ScenarioStep(Base):
     scenario_id = Column(String, ForeignKey('scenario_tests.id'), nullable=False)
     text = Column(Text, nullable=False)
     is_final = Column(Boolean, default=False)
-
+    order = Column(Integer, nullable=False, default=0)
     scenario_test = relationship("ScenarioTest", back_populates="steps")
     choices = relationship(
         "ScenarioChoice",
@@ -82,3 +83,15 @@ class ScenarioLog(Base):
     choice = relationship("ScenarioChoice")
 
 
+class ScenarioResult(Base):
+    __tablename__ = 'scenario_results'
+
+    id = Column(String, primary_key=True, default=generate_uuid)
+    user_id = Column(String, ForeignKey('users.id'), nullable=False)
+    scenario_id = Column(String, ForeignKey('scenario_tests.id'), nullable=False)
+    completed_at = Column(DateTime, default=datetime.utcnow)
+    result = Column(String)  # "success", "fail"
+    comment = Column(Text)
+
+    user = relationship("User", back_populates="scenario_results")
+    scenario = relationship("ScenarioTest")

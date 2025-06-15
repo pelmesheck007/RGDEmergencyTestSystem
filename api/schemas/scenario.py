@@ -43,7 +43,7 @@ class ScenarioChoiceOut(BaseModel):
 
 class ScenarioStepOut(BaseModel):
     id: str
-    step_text: str
+    text: str
     is_final: bool
     timeout_sec: Optional[int]
     choices: List[ScenarioChoiceOut]
@@ -59,3 +59,11 @@ class ScenarioLogCreate(BaseModel):
     time_taken: Optional[int] = 0
     is_error: bool = False
 
+
+from typing import Literal
+
+class ScenarioChoiceResult(BaseModel):
+    end: bool
+    status: Literal["success", "fail", "continue"]
+    message: str
+    next_step: Optional[ScenarioStepOut]

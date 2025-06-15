@@ -169,6 +169,8 @@ class TestsScreen(BaseScreen):
         )
         self.dialog.open()
 
+
+
     def show_scenario_test_details(self, test_data):
         self.selected_test = test_data
         self.dialog = MDDialog(
@@ -284,10 +286,6 @@ class TestsScreen(BaseScreen):
             timeout=10
         )
 
-    def start_test(self, *args):
-        self.dialog.dismiss()
-        self.app.current_test_id = self.selected_test.get("id")
-        self.manager.current = "test_taking"
 
     def start_scenario_test(self, *args):
         self.dialog.dismiss()
@@ -320,5 +318,13 @@ class TestsScreen(BaseScreen):
     def open_theme_dropdown(self):
         self.dropdown_manager.open_theme_menu()
 
+    def start_test(self, *args):
+        self.dialog.dismiss()
+        self.app.current_test_id = self.selected_test.get("id")
+        test_type = "scenario" if "title" in self.selected_test else "standard"
 
+        test_taking_screen = self.manager.get_screen("test_taking")
+        test_taking_screen.test_type = test_type
+        test_taking_screen.selected_test_id = self.selected_test.get("id")
 
+        self.manager.current = "test_taking"

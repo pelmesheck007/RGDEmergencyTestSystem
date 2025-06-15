@@ -16,23 +16,25 @@ def create_scenario_tests(db, student, themes):
     step1 = ScenarioStep(
         scenario_id=scenario.id,
         text="Светофор не работает. Ваши действия?",
-        is_final=False
+        is_final=False,
+        order=1  # порядок шага
     )
     step2 = ScenarioStep(
         scenario_id=scenario.id,
         text="Кому вы сообщаете о ситуации?",
-        is_final=False
+        is_final=False,
+        order=2
     )
     step_final = ScenarioStep(
         scenario_id=scenario.id,
         text="Ситуация локализована. Поезд остановлен. Сценарий завершён.",
-        is_final=True
+        is_final=True,
+        order=3
     )
 
     db.add_all([step1, step2, step_final])
     db.flush()
 
-    # Choices
     db.add_all([
         ScenarioChoice(step_id=step1.id, choice_text="Сообщить дежурному по станции", next_step_id=step2.id,
                        is_critical_error=False),
@@ -52,9 +54,9 @@ def create_scenario_tests(db, student, themes):
     db.add(scenario2)
     db.flush()
 
-    s2_step1 = ScenarioStep(scenario_id=scenario2.id, text="Вы заметили запах газа. Что делаете?", is_final=False)
-    s2_step2 = ScenarioStep(scenario_id=scenario2.id, text="Куда направляетесь?", is_final=False)
-    s2_final = ScenarioStep(scenario_id=scenario2.id, text="Вы эвакуировались. Сценарий завершен.", is_final=True)
+    s2_step1 = ScenarioStep(scenario_id=scenario2.id, text="Вы заметили запах газа. Что делаете?", is_final=False, order=1)
+    s2_step2 = ScenarioStep(scenario_id=scenario2.id, text="Куда направляетесь?", is_final=False, order=2)
+    s2_final = ScenarioStep(scenario_id=scenario2.id, text="Вы эвакуировались. Сценарий завершен.", is_final=True, order=3)
     db.add_all([s2_step1, s2_step2, s2_final])
     db.flush()
 
@@ -68,6 +70,7 @@ def create_scenario_tests(db, student, themes):
         ScenarioChoice(step_id=s2_step2.id, choice_text="К подвалу", next_step_id=s2_final.id,
                        is_critical_error=True)
     ])
+    db.flush()
 
     # Scenario log (симуляция прохождения)
     db.add_all([
@@ -76,3 +79,4 @@ def create_scenario_tests(db, student, themes):
         ScenarioLog(user_id=student.id, scenario_id=scenario.id, step_id=step2.id, choice_id=step2.choices[0].id,
                     time_taken=8)
     ])
+    db.flush()
