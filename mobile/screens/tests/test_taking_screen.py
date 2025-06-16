@@ -176,7 +176,7 @@ class TestTakingScreen(BaseScreen):
             size_hint=(0.8, None),
             height="250dp",
             buttons=[
-                MDFlatButton(text="Закрыть", on_release=lambda x: self.results_dialog.dismiss()),
+                MDFlatButton(text="Закрыть", on_release=lambda x: self.go_to_tests_screen),
                 MDFlatButton(text="На главную", on_release=self.go_to_main_screen)
             ],
         )
