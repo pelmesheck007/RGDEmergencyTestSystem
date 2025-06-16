@@ -40,28 +40,29 @@ class User(Base):
     full_name = Column(String(256))
     avatar_url = Column(String(512), default=True)
 
-    groups = relationship("StudyGroupMember", back_populates="user")
-
-    task_answers = relationship("TaskAnswer", back_populates="student")
-    created_tests = relationship("Test", back_populates="creator")
-    created_tests_scenario = relationship("ScenarioTest", back_populates="creator")
-    scenario_logs = relationship("ScenarioLog", back_populates="user")
+    task_answers = relationship("TaskAnswer", back_populates="student", cascade="all, delete-orphan")
+    created_tests = relationship("Test", back_populates="creator", cascade="all, delete-orphan")
+    created_tests_scenario = relationship("ScenarioTest", back_populates="creator", cascade="all, delete-orphan")
+    scenario_logs = relationship("ScenarioLog", back_populates="user", cascade="all, delete-orphan")
     sessions = relationship("UserSession", back_populates="user", cascade="all, delete-orphan")
     logs = relationship("SystemLog", back_populates="user", cascade="all, delete-orphan")
-    notifications = relationship("Notification", back_populates="user")
-    test_answers = relationship("TestAnswer", back_populates="student")
-    scenario_results = relationship('ScenarioResult', back_populates='user')
+    notifications = relationship("Notification", back_populates="user", cascade="all, delete-orphan")
+    test_answers = relationship("TestAnswer", back_populates="student", cascade="all, delete-orphan")
+    scenario_results = relationship("ScenarioResult", back_populates="user", cascade="all, delete-orphan")
+    study_group_members = relationship("StudyGroupMember", back_populates="user", cascade="all, delete-orphan")
 
 
 class StudyGroupMember(Base):
     __tablename__ = 'study_group_members'
 
-    user_id = Column(String, ForeignKey('users.id'), primary_key=True)
-    group_id = Column(String, ForeignKey('study_groups.id'), primary_key=True)
+    user_id = Column(String, ForeignKey('users.id', ondelete="CASCADE"), primary_key=True)
+    group_id = Column(String, ForeignKey('study_groups.id', ondelete="CASCADE"), primary_key=True)
+
     joined_at = Column(DateTime, default=datetime.utcnow)
 
-    user = relationship("User", back_populates="groups")
+    user = relationship("User", back_populates="study_group_members")
     group = relationship("StudyGroup", back_populates="members")
+
 
 
 class GroupAssignedTest(Base):

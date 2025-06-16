@@ -32,12 +32,13 @@ class UserUpdate(BaseModel):
     username: Optional[str] = None
     full_name: Optional[str] = None
     email: Optional[EmailStr] = None
+    role: Optional[str] = None
     avatar_url: Optional[str] = None
 
 
 class UserOut(UserBase):
     id: str
-    role: UserRole
+    role: Optional[UserRole] = None
     registration_date: datetime
 
     class Config:

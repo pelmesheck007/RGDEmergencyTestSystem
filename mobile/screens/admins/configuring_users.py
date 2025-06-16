@@ -1,4 +1,6 @@
 # mobile/screens/users/configuring_users_screen.py
+import json
+
 from kivy.lang import Builder
 from kivymd.uix.boxlayout import MDBoxLayout
 
@@ -8,7 +10,7 @@ from kivymd.uix.button import MDFlatButton
 from kivymd.uix.dialog import MDDialog
 from kivymd.toast import toast
 from kivy.network.urlrequest import UrlRequest
-from kivy.properties import ListProperty
+from kivy.properties import ListProperty, DictProperty, StringProperty
 from kivymd.uix.menu import MDDropdownMenu
 
 
@@ -74,8 +76,6 @@ class ConfiguringUsersScreen(BaseScreen):
         self.load_users()
 
     def show_edit_user_dialog(self, user):
-        from kivymd.uix.textfield import MDTextField
-
         self.edit_user_dialog = MDDialog(
             title=f"Редактировать: {user['username']}",
             type="custom",
@@ -90,9 +90,10 @@ class ConfiguringUsersScreen(BaseScreen):
     def save_user_changes(self, user):
         content = self.edit_user_dialog.content_cls
         headers = self._auth_headers()
+        print(f"Saving role: {content.selected_role}")
         body = {
             "full_name": content.ids.full_name.text,
-            "role": content.ids.role_menu.text.lower(),
+            "role": content.selected_role,
             "email": content.ids.email.text,
         }
 
@@ -125,42 +126,63 @@ class ConfiguringUsersScreen(BaseScreen):
 Builder.load_string('''
 <EditUserContent>:
     orientation: 'vertical'
-    spacing: "8dp"
-    padding: "8dp"
+    spacing: "16dp"
+    padding: "24dp"
+    size_hint_y: None
+    height: self.minimum_height
+
     MDTextField:
         id: full_name
         hint_text: "ФИО"
         text: root.user.get("full_name", "")
+        mode: "rectangle"
+
     MDTextField:
         id: email
         hint_text: "Email"
         text: root.user.get("email", "")
-    MDDropdownMenu:
-        id: role_menu
-        caller: role_button
-        items: root.role_items
-        width_mult: 4
+        mode: "rectangle"
+
     MDRaisedButton:
         id: role_button
-        text: root.user.get("role", "").capitalize()
-        on_release: root.role_menu.open()
+        text: root.user.get("role", "").capitalize() if root.user.get("role") else "Выбрать роль"
+        size_hint: None, None
+        size: dp(200), dp(48)
+        pos_hint: {"center_x": .5}
+        on_release: root.menu.open()
 ''')
 
 class EditUserContent(MDBoxLayout):
+    user = DictProperty({})
+    selected_role = StringProperty("")
+
     def __init__(self, user, **kwargs):
-        super().__init__(**kwargs)
         self.user = user
+        super().__init__(**kwargs)
+        self.selected_role = user.get("role", "").lower() if user.get("role") else ""
+        self._init_menu()
+        self.ids.role_button.text = self.selected_role.capitalize() if self.selected_role else "Выбрать роль"
+
+    def _init_menu(self):
+        menu_items = [
+            {
+                "viewclass": "OneLineListItem",
+                "text": role.capitalize(),
+                "on_release": lambda x=role: self.set_role(x),
+            }
+            for role in ["admin", "student", "teacher"]
+        ]
 
         self.menu = MDDropdownMenu(
             caller=self.ids.role_button,
-            items=[
-                {"text": "Admin", "on_release": lambda x="Admin": self.set_role(x)},
-                {"text": "Teacher", "on_release": lambda x="Teacher": self.set_role(x)},
-                {"text": "Student", "on_release": lambda x="Student": self.set_role(x)},
-            ],
-            width_mult=4
+            items=menu_items,
+            width_mult=4,
         )
 
     def set_role(self, role_text):
+        self.selected_role = role_text.lower()
         self.ids.role_button.text = role_text
         self.menu.dismiss()
+        print(f"Role selected: {self.selected_role}")
+
+
