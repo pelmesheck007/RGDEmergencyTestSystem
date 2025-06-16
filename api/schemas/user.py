@@ -63,3 +63,8 @@ class UserLogin(BaseModel):
     username: str
     password: str
 
+class UserCreate(BaseModel):
+    username: str
+    email: EmailStr
+    password: str  # если нужно
+

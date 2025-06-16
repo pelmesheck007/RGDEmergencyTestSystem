@@ -28,22 +28,40 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
 
 @router.post("/", response_model=UserOut)
-def create_user(data: UserCreate, db: Session = Depends(get_db), _: str = Depends(require_admin), require_admin=None):
+def create_user(
+    data: UserCreate,
+    db: Session = Depends(get_db),
+    _: str = Depends(require_admin)
+):
     return user_service.create_user(db, data)
 
 
-
-
 @router.get("/", response_model=List[UserOut])
-def list_users(db: Session = Depends(get_db), _: str = Depends(require_admin)):
+def list_users(
+    db: Session = Depends(get_db),
+    _: str = Depends(require_admin)
+):
     return user_service.get_all_users(db)
 
 
-
 @router.put("/{user_id}", response_model=UserOut)
-def admin_update_user(user_id: str, data: UserUpdate, db: Session = Depends(get_db), _: str = Depends(require_admin)):
+def admin_update_user(
+    user_id: str,
+    data: UserUpdate,
+    db: Session = Depends(get_db),
+    _: str = Depends(require_admin)
+):
     return user_service.update_user(db, user_id, data)
 
+
+@router.delete("/{user_id}", status_code=204)
+def delete_user(
+    user_id: str,
+    db: Session = Depends(get_db),
+    _: str = Depends(require_admin)
+):
+    user_service.delete_user(db, user_id)
+    return None
 
 @router.delete("/{user_id}")
 def delete_user(user_id: str, db: Session = Depends(get_db), _: str = Depends(require_admin)):

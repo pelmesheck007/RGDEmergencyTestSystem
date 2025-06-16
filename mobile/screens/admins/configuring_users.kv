@@ -1,13 +1,16 @@
 <ConfiguringUsersScreen>:
+    name: 'configuring_users'
     MDFloatLayout:
-        md_bg_color: app.theme_cls.backgroundColor
+        md_bg_color: app.rjd_light_red
 
         MDCard:
             size_hint: .9, .88
             pos_hint: {"center_x": .5, "top": .95}
             elevation: 2
             padding: [20, 15, 20, 15]
-            md_bg_color: app.theme_cls.bg_normal
+            spacing: 12
+            orientation: "vertical"
+            md_bg_color: app.rjd_white
             radius: [12]
 
             MDTopAppBar:
@@ -17,14 +20,31 @@
                 right_action_items: [["logout", lambda x: root.logout()]]
                 elevation: 2
                 md_bg_color: app.rjd_dark_red
-                specific_text_color: app.theme_cls.textColor
                 font_style: "H6"
                 pos_hint: {"top": 1}
                 size_hint_y: None
                 height: dp(56)
 
             BoxLayout:
-                id: content
-                orientation: 'vertical'
-                padding: [0, 10, 0, 0]
-                spacing: 15
+                orientation: "vertical"
+                spacing: dp(10)
+                padding: [0, dp(10), 0, 0]
+
+                MDLabel:
+                    text: "Пользователи"
+                    font_style: "H6"
+                    size_hint_y: None
+                    height: self.texture_size[1]
+
+                MDRaisedButton:
+                    text: "Добавить пользователя"
+                    icon: "account-plus"
+                    md_bg_color: app.rjd_dark_red
+                    text_color: 1, 1, 1, 1
+                    size_hint: None, None
+                    size: dp(200), dp(40)
+                    on_release: root.open_create_user_dialog()
+
+                ScrollView:
+                    MDList:
+                        id: content_list
