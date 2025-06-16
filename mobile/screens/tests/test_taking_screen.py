@@ -16,13 +16,24 @@ class TestTakingScreen(BaseScreen):
     test_type = StringProperty("standard")  # "standard" или "scenario"
     selected_test_id = StringProperty()
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.time_limit = None
+        self.remaining_time = None
+
 
     def on_pre_enter(self):
         self.remaining_time_label = self.ids.timer_label
+
         if self.test_type == "standard":
+            self.ids.next_button.opacity = 1
+            self.ids.next_button.disabled = False
             self.load_normal_test()
         else:
+            self.ids.next_button.opacity = 0
+            self.ids.next_button.disabled = True
             self.start_scenario()
+
         if self.selected_test_id:
             self.load_test_data()
 
@@ -107,17 +118,15 @@ class TestTakingScreen(BaseScreen):
         )
 
     def go_to_next_question(self):
-        if self.test_type == "normal":
-            if self.current_task_id not in self.selected_answers:
-                from kivymd.toast import toast
-                toast("Пожалуйста, выберите ответ перед продолжением")
-                return
+        if self.current_task_id not in self.selected_answers:
+            from kivymd.toast import toast
+            toast("Пожалуйста, выберите ответ перед продолжением")
+            return
 
-            if self.current_index + 1 < len(self.questions):
-                self.current_index += 1
-                self.display_question(self.current_index)
-            else:
-                self.submit_test_result()
+            # Перейдем к следующему вопросу, если он есть
+        if self.current_index + 1 < len(self.questions):
+            self.current_index += 1
+            self.display_question(self.current_index)
         else:
             self.submit_test_result()
 
@@ -173,16 +182,9 @@ class TestTakingScreen(BaseScreen):
         )
         self.results_dialog.open()
 
-    def start_timer_if_needed(self):
-        self.remaining_time = self.time_limit  # time_limit должна быть установлена заранее
-        if self.remaining_time > 0:
-            Clock.schedule_interval(self.update_timer, 1)
-
     def update_timer(self, dt):
         self.remaining_time -= 1
-        print(f"Осталось времени: {self.remaining_time} сек.")
 
-        # Можно обновить UI: например, Label с оставшимся временем
         if self.remaining_time_label:
             self.remaining_time_label.text = f"Осталось времени: {self.remaining_time} сек."
 
@@ -190,14 +192,15 @@ class TestTakingScreen(BaseScreen):
             Clock.unschedule(self.update_timer)
             self.finish_test_due_to_timeout()
 
-    def finish_test_due_to_timeout(self):
-        # Здесь логика автосдачи
-        print("Время вышло. Отправка результатов...")
-        self.submit_test_result()
-
     def go_to_main_screen(self, *args):
         self.results_dialog.dismiss()
         self.manager.current = "main"
+        self.results_dialog.dismiss()
+
+    def go_to_tests_screen(self, *args):
+        self.results_dialog.dismiss()
+        self.manager.current = "tests"
+        self.results_dialog.dismiss()
 
     def load_normal_test(self):
         self.load_test_questions()  # твой существующий метод
@@ -299,11 +302,6 @@ class TestTakingScreen(BaseScreen):
             timeout=10
         )
 
-    def on_test_data_loaded(self, req, result):
-        # Здесь можно заполнить UI тестом, результатом загрузки
-        print(f"Тест загружен ({self.test_type}):", result)
-        # Например, отобразить вопросы, описание и т.п.
-
     def on_test_data_error(self, req, error):
         from kivymd.toast import toast
         toast(f"Ошибка загрузки теста: {error}")
@@ -328,9 +326,10 @@ class TestTakingScreen(BaseScreen):
         )
 
     def on_scenario_step_loaded(self, req, result):
-        # result — это один шаг с choices
         self.current_step = result
         self.display_scenario_step_data(result)
+        self.start_timer_if_needed()
+
 
     def display_scenario_step_data(self, step):
         self.ids.question_label.text = step["text"]
@@ -379,21 +378,45 @@ class TestTakingScreen(BaseScreen):
                 from kivymd.toast import toast
                 toast("Сценарий не может продолжиться: сервер не прислал следующий шаг.")
 
-    def show_scenario_result_dialog(self, result):
-        message = result.get("message", "Сценарий завершён.")
-        next_step = result.get("next_step", {})
-        final_text = next_step.get("text", "")
 
-        content = f"{message}\n\n{final_text}" if final_text else message
+    def show_scenario_result_dialog(self, result):
+        next_step = result.get("next_step")
+
+        if next_step:
+            final_text = next_step.get("text", "")
+        else:
+            final_text = result.get("message", "Сценарий завершён.")
 
         self.results_dialog = MDDialog(
-            title="Завершение сценария",
-            text=content,
+            title="Результаты сценария",
+            text=final_text,
             size_hint=(0.8, None),
             height="250dp",
             buttons=[
-                MDFlatButton(text="Закрыть", on_release=lambda x: self.results_dialog.dismiss()),
+                MDFlatButton(text="Закрыть", on_release=lambda x: self.go_to_tests_screen()),
                 MDFlatButton(text="На главную", on_release=self.go_to_main_screen)
             ],
         )
         self.results_dialog.open()
+
+    def finish_test_due_to_timeout(self):
+        print("Время вышло. Отправка результатов...")
+
+        if self.test_type == "standard":
+            self.submit_test_result()
+        elif self.test_type == "scenario":
+            self.submit_scenario_result()
+
+    def start_timer_if_needed(self):
+        if not isinstance(self.time_limit, (int, float)) or self.time_limit <= 0:
+            print("Таймер не запущен: время не указано или нулевое.")
+            return
+
+        self.remaining_time = self.time_limit
+        Clock.schedule_interval(self.update_timer, 1)
+
+    def on_test_data_loaded(self, req, result):
+        print(f"Тест загружен ({self.test_type}):", result)
+        self.time_limit = result.get("time_limit", 0)
+        self.test_name = result.get("test_name", "")
+        self.start_timer_if_needed()
