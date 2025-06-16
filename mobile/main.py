@@ -19,6 +19,7 @@ class RZDLoginApp(MDApp):
         super().__init__(**kwargs)
         # Основная информация об приложении
         self.title = "RGDEmergencyTestSystem"
+        self.icon = "assets/images/icon.png"
         self.api_url = "http://localhost:8000"  # URL-адрес API
         self.token = None  # Токен авторизации
         self.user_data = None  # Данные пользователя

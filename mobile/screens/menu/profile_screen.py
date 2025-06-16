@@ -8,14 +8,9 @@ from mobile.screens.base_screen import BaseScreen
 from kivy.properties import StringProperty, BooleanProperty
 from kivy.uix.filechooser import FileChooserIconView
 from kivy.uix.popup import Popup
-from kivy.uix.image import Image
-from kivy.core.window import Window
 import os
 
 from kivy.properties import StringProperty
-
-# уже есть: avatar_url = StringProperty("")
-
 
 class ProfileScreen(BaseScreen):
     username = StringProperty("")

@@ -1,12 +1,15 @@
 # app/routers/users.py
 import os
 import shutil
+from datetime import datetime, timedelta
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Body
 from fastapi.security import OAuth2PasswordBearer
 from pydantic import BaseModel, EmailStr, validator
 from typing import Optional
+
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from starlette.responses import JSONResponse
 
@@ -177,3 +180,28 @@ def delete_me(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)
     db.delete(user)
     db.commit()
     return {"detail": "User deleted"}
+
+@router.get("/admin/user_stats")
+def get_user_stats(db: Session = Depends(get_db)):
+    total_users = db.query(func.count(User.id)).scalar()
+    active_users = db.query(func.count(User.id)).filter(User.is_active == True).scalar()
+
+    roles_count = db.query(User.role, func.count(User.id)).group_by(User.role).all()
+    roles_dict = {role.value.lower(): count for role, count in roles_count}
+
+    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+    new_users_30d = db.query(func.count(User.id)).filter(User.registration_date >= thirty_days_ago).scalar()
+    last_logins = db.query(User.full_name, User.registration_date) \
+        .order_by(User.registration_date.desc()) \
+        .limit(5).all()
+
+    return {
+         "total_users": total_users,
+        "active_users": active_users,
+        "roles_count": roles_dict,
+        "new_users_30d": new_users_30d,
+        "latest_users": [
+            {"name": name, "registered": reg_date.strftime("%Y-%m-%d")}
+            for name, reg_date in last_logins
+        ]
+    }

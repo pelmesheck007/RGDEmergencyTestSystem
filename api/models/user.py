@@ -23,9 +23,9 @@ class StudyGroup(Base):
     description = Column(Text)
     created_at = Column(DateTime, default=datetime.utcnow)
 
-    members = relationship("StudyGroupMember", back_populates="group")
+    members = relationship("StudyGroupMember", back_populates="group", cascade="all, delete-orphan")
     assigned_tests = relationship("GroupAssignedTest", back_populates="group", cascade="all, delete-orphan")
-
+    
 class User(Base):
     __tablename__ = 'users'
 

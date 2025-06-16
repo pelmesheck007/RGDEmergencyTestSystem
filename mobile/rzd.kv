@@ -4,6 +4,8 @@
 #:import ProfileScreen screens.menu.profile_screen.ProfileScreen
 #:import ConfiguringUsersScreen screens.admins.configuring_users.ConfiguringUsersScreen
 #:import SettingsScreen screens.admins.settings_screen.SettingsScreen
+#:import SettingsScreen screens.admins.statistics_screen.UserStatsScreen
+
 #:import TestsScreen screens.tests.tests_screen.TestsScreen
 #:import TestTakingScreen screens.tests.test_taking_screen.TestTakingScreen
 #:import CreateTestScreen screens.tests.create_test_screen.CreateTestScreen
@@ -45,17 +47,18 @@ MDScreenManager:
         name: 'manage_users'
         on_enter:
             app.current_screen = 'manage_users'
-            root.get_screen('manage_users').on_screen_enter()
+            root.get_screen('manage_users').on_pre_enter()
         on_leave:
-            root.get_screen('manage_users').on_screen_leave()
+            root.get_screen('manage_users').on_leave()
 
-    SettingsScreen:
-        name: 'settings'
+    UserStatsScreen:
+        name: 'statistics'
         on_enter:
-            app.current_screen = 'settings'
-            root.get_screen('settings').on_screen_enter()
+            app.current_screen = 'statistics'
+            root.get_screen('statistics').on_pre_enter()
         on_leave:
-            root.get_screen('settings').on_screen_leave()
+            root.get_screen('statistics').on_leave()
+
 
     TestsScreen:
         name: 'tests'
@@ -112,6 +115,7 @@ MDScreenManager:
 #:include screens/main/main_screen.kv
 #:include screens/menu/profile_screen.kv
 #:include screens/admins/configuring_users.kv
+#:include screens/admins/statistics_screen.kv
 
 
 #:include screens/tests/tests_screen.kv

@@ -84,7 +84,7 @@ class EditGroupScreen(BaseScreen):
             self.ids.members_list.clear_widgets()
             for user in result:
                 item = TwoLineRightIconListItem(
-                    text=user['fio'],
+                    text=user['full_name'],
                     secondary_text=user['username']
                 )
                 icon = IconRightWidget(icon="delete", on_release=lambda x, uid=user["id"]: self.remove_member(uid))

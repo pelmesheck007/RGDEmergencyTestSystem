@@ -1,0 +1,144 @@
+<UserStatsScreen>:
+    name: "statistics"
+    MDFloatLayout:
+        md_bg_color: app.rjd_light_red
+
+        MDCard:
+            size_hint: .92, .9
+            pos_hint: {"center_x": .5, "top": .95}
+            elevation: 3
+            padding: 0
+            orientation: "vertical"
+            md_bg_color: app.rjd_white
+            radius: [16]
+
+            MDTopAppBar:
+                id: menu_button
+                title: root.screen_title
+                left_action_items: [["menu", lambda x: root.open_menu()]]
+                right_action_items: [["logout", lambda x: root.logout()]]
+                elevation: 2
+                md_bg_color: app.rjd_dark_red
+                specific_text_color: app.rjd_white
+                font_style: "H6"
+                pos_hint: {"top": 1}
+                size_hint_y: None
+                height: dp(56)
+
+            ScrollView:
+                bar_width: dp(4)
+                bar_color: app.rjd_dark_red
+
+                BoxLayout:
+                    orientation: 'vertical'
+                    size_hint_y: None
+                    height: self.minimum_height
+                    padding: [20, 20, 20, 20]
+                    spacing: dp(20)
+
+                    MDBoxLayout:
+                        spacing: dp(15)
+                        adaptive_height: True
+
+                        MDCard:
+                            orientation: "vertical"
+                            padding: dp(16)
+                            radius: [12]
+                            md_bg_color: app.theme_cls.primary_light
+                            size_hint: 1, None
+                            height: dp(110)
+
+                            MDLabel:
+                                text: "Всего пользователей"
+                                font_style: "Caption"
+                                theme_text_color: "Hint"
+                                halign: "left"
+                            MDLabel:
+                                id: total_users
+                                text: "..."
+                                font_style: "H4"
+                                theme_text_color: "Custom"
+                                text_color: app.rjd_dark_red
+                                halign: "left"
+
+                        MDCard:
+                            orientation: "vertical"
+                            padding: dp(16)
+                            radius: [12]
+                            md_bg_color: [0.8, 1, 0.8, 1]
+                            size_hint: 1, None
+                            height: dp(110)
+
+                            MDLabel:
+                                text: "Активных пользователей"
+                                font_style: "Caption"
+                                theme_text_color: "Hint"
+                                halign: "left"
+                            MDLabel:
+                                id: active_users
+                                text: "..."
+                                font_style: "H4"
+                                theme_text_color: "Custom"
+                                text_color: [0.1, 0.6, 0.1, 1]
+                                halign: "left"
+
+                    MDCard:
+                        orientation: "vertical"
+                        padding: dp(16)
+                        radius: [12]
+                        md_bg_color: [0.95, 0.95, 1, 1]
+                        size_hint_y: None
+                        height: dp(130)
+
+                        MDLabel:
+                            text: "Новых за 30 дней"
+                            font_style: "Caption"
+                            theme_text_color: "Hint"
+                            halign: "left"
+                        MDLabel:
+                            id: new_users_30d
+                            text: "..."
+                            font_style: "H4"
+                            theme_text_color: "Custom"
+                            text_color: [0.3, 0.3, 1, 1]
+                            halign: "left"
+
+                    MDCard:
+                        orientation: "vertical"
+                        padding: dp(16)
+                        radius: [12]
+                        md_bg_color: [1, 1, 0.95, 1]
+                        size_hint_y: None
+                        height: dp(160)
+
+                        MDLabel:
+                            text: "Распределение по ролям"
+                            font_style: "Caption"
+                            theme_text_color: "Hint"
+                            halign: "left"
+                        MDLabel:
+                            id: roles_count
+                            text: "..."
+                            font_style: "Body1"
+                            theme_text_color: "Primary"
+                            halign: "left"
+
+                    MDCard:
+                        orientation: "vertical"
+                        padding: dp(16)
+                        radius: [12]
+                        md_bg_color: [0.98, 0.95, 0.95, 1]
+                        size_hint_y: None
+                        height: dp(200)
+
+                        MDLabel:
+                            text: "Последние зарегистрированные пользователи"
+                            font_style: "Caption"
+                            theme_text_color: "Hint"
+                            halign: "left"
+                        MDLabel:
+                            id: latest_users
+                            text: "Нет данных"
+                            font_style: "Body2"
+                            theme_text_color: "Primary"
+                            halign: "left"

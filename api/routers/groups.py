@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import UUID
 from sqlalchemy.orm import Session
 from api.models import StudyGroup, StudyGroupMember, User, UserRole
 from api.database import get_db
@@ -22,6 +23,14 @@ class RoleInput(BaseModel):
 def get_groups(db: Session = Depends(get_db)):
     return db.query(StudyGroup).all()
 
+@router.delete("/{group_id}", status_code=204)
+def delete_group(group_id: str, db: Session = Depends(get_db)):
+    group = db.query(StudyGroup).filter_by(id=group_id).first()
+    if not group:
+        raise HTTPException(status_code=404, detail="Группа не найдена")
+
+    db.delete(group)
+    db.commit()
 
 @router.post("/", response_model=StudyGroupOut)
 def create_group(group_data: StudyGroupCreate, db: Session = Depends(get_db)):
@@ -72,7 +81,7 @@ def add_member(group_id: str, data: UsernameInput, db: Session = Depends(get_db)
     return {"detail": "Участник добавлен"}
 
 
-@router.delete("/{group_id}/members/{user_id}")
+@router.delete("/{group_id}/members/{user_id}/")
 def remove_member(group_id: str, user_id: str, db: Session = Depends(get_db)):
     member = db.query(StudyGroupMember).filter_by(group_id=group_id, user_id=user_id).first()
     if not member:
