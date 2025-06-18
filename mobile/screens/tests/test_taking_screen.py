@@ -20,9 +20,10 @@ class TestTakingScreen(BaseScreen):
         super().__init__(**kwargs)
         self.time_limit = None
         self.remaining_time = None
-
+        self.test_submitted = False
 
     def on_pre_enter(self):
+        self.test_submitted = False
         self.remaining_time_label = self.ids.timer_label
 
         if self.test_type == "standard":
@@ -58,6 +59,10 @@ class TestTakingScreen(BaseScreen):
         self.selected_answers[self.current_task_id] = [answer_id]
 
     def submit_test_result(self):
+        if self.test_submitted:
+            return
+        self.test_submitted = True
+
         headers = {"Authorization": f"Bearer {self.app.token}", "Content-Type": "application/json"}
 
         data = {
@@ -261,6 +266,9 @@ class TestTakingScreen(BaseScreen):
             self.submit_scenario_result()
 
     def submit_scenario_result(self):
+        if self.test_submitted:
+            return
+        self.test_submitted = True
         headers = {"Authorization": f"Bearer {self.app.token}", "Content-Type": "application/json"}
 
         data = {

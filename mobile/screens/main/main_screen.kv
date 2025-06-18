@@ -5,11 +5,11 @@
         md_bg_color: app.rjd_light_red
 
         MDCard:
-            size_hint: .9, .88
+            size_hint: .92, .9
             pos_hint: {"center_x": .5, "top": .95}
             elevation: 2
-            padding: [20, 15, 20, 15]
-            spacing: 12
+            padding: dp(16)
+            spacing: dp(12)
             orientation: "vertical"
             md_bg_color: app.rjd_white
             radius: [12]
@@ -19,22 +19,16 @@
                 title: root.screen_title
                 left_action_items: [["menu", lambda x: root.open_menu()]]
                 right_action_items: [["logout", lambda x: root.logout()]]
-                elevation: 2
                 md_bg_color: app.rjd_dark_red
                 specific_text_color: app.rjd_white
-                font_style: "H6"
-                pos_hint: {"top": 1}
                 size_hint_y: None
                 height: dp(56)
 
             ScrollView:
-                bar_width: dp(4)
-                bar_color: app.rjd_dark_red
-
-                BoxLayout:
+                MDBoxLayout:
                     id: content_box
-                    orientation: 'vertical'
+                    orientation: "vertical"
+                    spacing: dp(16)
+                    padding: [dp(10), dp(10), dp(10), dp(30)]
                     size_hint_y: None
                     height: self.minimum_height
-                    padding: [0, 10, 0, 20]
-                    spacing: 15

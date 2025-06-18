@@ -15,8 +15,10 @@ from starlette.responses import JSONResponse
 
 from api.auth import get_user_id_from_token, get_password_hash
 from api.dependencies import get_current_user, get_db
+from api.models import TestAnswer
+from api.models.scenario_tests import ScenarioResult
 from api.schemas import *
-from api.models.user import User
+from api.models.user import User, StudyGroupMember, StudyGroup
 from api.schemas.user import UserUpdate, UserOut, UserCreate
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -203,5 +205,199 @@ def get_user_stats(db: Session = Depends(get_db)):
         "latest_users": [
             {"name": name, "registered": reg_date.strftime("%Y-%m-%d")}
             for name, reg_date in last_logins
+        ]
+    }
+
+
+
+@router.get("/{user_id}/main_info")
+def get_user_main_info(user_id: str, db: Session = Depends(get_db)):
+    user = db.query(User).filter_by(id=user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+
+    group = (
+        db.query(StudyGroup)
+        .join(StudyGroupMember, StudyGroup.id == StudyGroupMember.group_id)
+        .filter(StudyGroupMember.user_id == user_id)
+        .first()
+    )
+
+    test_answers = (
+        db.query(TestAnswer)
+        .filter(TestAnswer.student_id == user_id)
+        .order_by(TestAnswer.end_datetime.desc())
+        .limit(5)
+        .all()
+    )
+
+    scenario_results = (
+        db.query(ScenarioResult)
+        .filter(ScenarioResult.user_id == user_id)
+        .order_by(ScenarioResult.completed_at.desc())
+        .limit(5)
+        .all()
+    )
+
+    return {
+        "group": {
+            "id": group.id if group else None,
+            "name": group.name if group else "Без группы"  # Название поля name, а не title
+        },
+        "recent_tests": [
+        {
+            "id": t.test_id,
+            "title": t.test.test_name if t.test else "Неизвестный тест",
+            "score_percent": (
+                round((t.score / max(len(t.test.tasks), 1)) * 100, 1)
+                if t.test and t.test.tasks else None
+            ),
+
+            "score_str": (
+                f"{t.score} / {len(t.test.tasks)}" if t.test and t.test.tasks else None
+            ),
+            "passed": t.is_passed,
+            "datetime": t.end_datetime.isoformat() if t.end_datetime else None
+        }
+        for t in test_answers
+    ],
+
+
+        "recent_scenarios": [
+            {
+                "id": s.scenario_id,
+                "test_type": "scenario",  # Чтобы фронт понимал, что это сценарий
+                "name": s.scenario.title if s.scenario else "Неизвестный сценарий",
+                "result": s.result,
+                "datetime": s.completed_at.isoformat() if s.completed_at else None
+            }
+            for s in scenario_results
+        ]
+    }
+
+@router.get("/me/main_information")
+def get_current_user_full_info(
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)
+):
+    user_id = get_user_id_from_token(token)
+    user = db.query(User).get(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Учебная группа
+    group = (
+        db.query(StudyGroup)
+        .join(StudyGroupMember, StudyGroup.id == StudyGroupMember.group_id)
+        .filter(StudyGroupMember.user_id == user_id)
+        .first()
+    )
+
+    # Последние 5 обычных тестов
+    test_answers = (
+        db.query(TestAnswer)
+        .filter(TestAnswer.student_id == user_id)
+        .order_by(TestAnswer.end_datetime.desc())
+        .limit(5)
+        .all()
+    )
+
+    # Последние 5 сценариев
+    scenario_results = (
+        db.query(ScenarioResult)
+        .filter(ScenarioResult.user_id == user_id)
+        .order_by(ScenarioResult.completed_at.desc())
+        .limit(5)
+        .all()
+    )
+
+    return {
+        "id": user.id,
+        "username": user.username,
+        "full_name": user.full_name,
+        "email": user.email,
+        "role": user.role,
+        "group": {
+            "id": group.id if group else None,
+            "title": group.title if group else "Без группы"
+        },
+        "recent_tests": [
+            {
+                "id": t.test_id,
+                "title": t.test.test_name if t.test else "Неизвестный тест",
+                "score": t.score,
+                "passed": t.is_passed,
+                "datetime": t.end_datetime.isoformat() if t.end_datetime else None
+            }
+            for t in test_answers
+        ],
+        "recent_scenarios": [
+            {
+                "id": s.scenario_id,
+                "title": s.scenario.title if s.scenario else "Неизвестный сценарий",
+                "result": s.result,
+                "datetime": s.completed_at.isoformat() if s.completed_at else None
+            }
+            for s in scenario_results
+        ]
+    }
+
+@router.get("/{user_id}/main_info")
+def get_user_main_info(user_id: str, db: Session = Depends(get_db)):
+    user = db.query(User).filter_by(id=user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Пользователь не найден")
+
+    # Учебная группа
+    group = (
+        db.query(StudyGroup)
+        .join(StudyGroupMember, StudyGroup.id == StudyGroupMember.group_id)
+        .filter(StudyGroupMember.user_id == user_id)
+        .first()
+    )
+
+    # Последние 5 обычных тестов
+    test_answers = (
+        db.query(TestAnswer)
+        .filter(TestAnswer.student_id == user_id)
+        .order_by(TestAnswer.end_datetime.desc())
+        .limit(5)
+        .all()
+    )
+
+    # Последние 5 сценариев
+    scenario_results = (
+        db.query(ScenarioResult)
+        .filter(ScenarioResult.user_id == user_id)
+        .order_by(ScenarioResult.completed_at.desc())
+        .limit(5)
+        .all()
+    )
+
+    return {
+        "group": {
+            "id": group.id if group else None,
+            "title": group.title if group else "Без группы"
+        },
+        "recent_tests": [
+            {
+                "id": t.test_id,
+                "type": "test",
+                "title": t.test.test_name if t.test else "Неизвестный тест",
+                "score": t.score,
+                "passed": t.is_passed,
+                "datetime": t.end_datetime.isoformat() if t.end_datetime else None
+            }
+            for t in test_answers
+        ],
+        "recent_scenarios": [
+            {
+                "id": s.scenario_id,
+                "type": "scenario",
+                "title": s.scenario.title if s.scenario else "Неизвестный сценарий",
+                "result": s.result,
+                "datetime": s.completed_at.isoformat() if s.completed_at else None
+            }
+            for s in scenario_results
         ]
     }

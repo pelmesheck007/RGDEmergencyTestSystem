@@ -7,6 +7,10 @@ import logging
 from pathlib import Path
 from datetime import datetime
 
+from kivymd.uix.label import MDLabel
+from kivymd.uix.list import OneLineListItem
+
+
 class SafeScreenManager(ScreenManager):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -122,7 +126,6 @@ class RZDLoginApp(MDApp):
         """Обновление сохранённых данных пользователя"""
         if hasattr(self, 'user_data'):
             self.user_data.update(new_data)
-
 
 
 

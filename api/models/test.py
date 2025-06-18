@@ -100,7 +100,7 @@ class TestAnswer(Base):
     is_passed = Column(Boolean)
 
     test = relationship("Test", back_populates="test_answers")
-    student = relationship("User", back_populates="test_answers")  # <-- добавь сюда!
+    student = relationship("User", back_populates="test_answers")
     task_answers = relationship("TaskAnswer", back_populates="test_answer", cascade="all, delete-orphan")
 
 
