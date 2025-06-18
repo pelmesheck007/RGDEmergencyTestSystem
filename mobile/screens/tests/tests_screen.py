@@ -184,6 +184,12 @@ class TestsScreen(BaseScreen):
                     text_color=self.app.rjd_dark_red,
                     on_release=self.confirm_delete_test
                 ),
+                MDFlatButton(
+                    text="РЕДАКТИРОВАТЬ",
+                    theme_text_color="Custom",
+                    text_color=self.app.rjd_dark_red,
+                    on_release=self.edit_selected_test
+                ),
                 # СПРАВА: кнопки "Закрыть" и "Начать тест"
                 MDFlatButton(
                     text="ЗАКРЫТЬ",
@@ -328,3 +334,17 @@ class TestsScreen(BaseScreen):
         test_taking_screen.selected_test_id = self.selected_test.get("id")
 
         self.manager.current = "test_taking"
+
+    def edit_selected_test(self, *args):
+        self.dialog.dismiss()  # Закрываем диалог
+
+        test_id = self.selected_test.get("id")
+        if not test_id:
+            toast("ID теста не найден")
+            return
+
+        self.manager.current = "create_test"  # Переход на экран создания/редактирования
+
+        # Передаём управление экрану редактирования
+        screen = self.manager.get_screen("create_test")
+        screen.load_test_for_edit(test_id)

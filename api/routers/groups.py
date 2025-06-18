@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import UUID
 from sqlalchemy.orm import Session
-from api.models import StudyGroup, StudyGroupMember, User, UserRole
+from api.models import StudyGroup, StudyGroupMember, User, UserRole, GroupAssignedTest, Test
 from api.database import get_db
 from pydantic import BaseModel
 from typing import List
@@ -108,3 +108,58 @@ def assign_role(group_id: str, user_id: str, data: RoleInput, db: Session = Depe
     db.commit()
 
     return {"detail": f"Глобальная роль пользователя изменена на '{data.role}'"}
+
+
+@router.get("/{group_id}/assigned_tests")
+def get_assigned_tests(group_id: str, db: Session = Depends(get_db)):
+    group = db.query(StudyGroup).filter_by(id=group_id).first()
+    if not group:
+        raise HTTPException(status_code=404, detail="Группа не найдена")
+
+    return [
+        {
+            "id": t.test.id,
+            "test_name": t.test.test_name
+        }
+        for t in group.assigned_tests if t.test
+    ]
+
+
+class AssignTestRequest(BaseModel):
+    test_id: str
+
+@router.post("/{group_id}/assign_test")
+def assign_test(group_id: str, body: AssignTestRequest, db: Session = Depends(get_db)):
+    group = db.query(StudyGroup).filter_by(id=group_id).first()
+    if not group:
+        raise HTTPException(status_code=404, detail="Группа не найдена")
+
+    test = db.query(Test).filter_by(id=body.test_id).first()
+    if not test:
+        raise HTTPException(status_code=404, detail="Тест не найден")
+
+    # Проверяем, не назначен ли уже
+    existing = (
+        db.query(GroupAssignedTest)
+        .filter_by(group_id=group_id, test_id=body.test_id)
+        .first()
+    )
+    if existing:
+        raise HTTPException(status_code=400, detail="Тест уже назначен группе")
+
+    assigned = GroupAssignedTest(group_id=group_id, test_id=body.test_id)
+    db.add(assigned)
+    db.commit()
+    db.refresh(assigned)
+    return {"message": "Тест назначен группе", "assigned_id": assigned.id}
+
+
+@router.delete("/{group_id}/assigned_tests/{assigned_id}")
+def unassign_test(group_id: str, assigned_id: str, db: Session = Depends(get_db)):
+    assigned = db.query(GroupAssignedTest).filter_by(id=assigned_id, group_id=group_id).first()
+    if not assigned:
+        raise HTTPException(status_code=404, detail="Назначение теста не найдено")
+
+    db.delete(assigned)
+    db.commit()
+    return {"message": "Тест удалён из назначенных группе"}

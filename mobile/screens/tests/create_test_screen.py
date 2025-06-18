@@ -14,19 +14,22 @@ from kivymd.uix.textfield import MDTextField
 import json
 
 from mobile.screens.base_screen import BaseScreen
-
+from kivy.properties import NumericProperty
 
 class TaskForm(MDBoxLayout):
-    def __init__(self, task_number=1, total_tasks=1, **kwargs):
+    task_number = NumericProperty(1)
+    total_tasks = NumericProperty(1)
+
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.task_type = "text"
-        self.ids.title_label.text = f"Задание {task_number} ({task_number} из {total_tasks})"
-        self.ids.options_count_field.height = 0
-        self.ids.options_count_field.opacity = 0
         self.user_data = None
         self.user_id = None
 
-
+    def on_kv_post(self, base_widget):
+        self.ids.title_label.text = f"Задание {self.task_number} ({self.task_number} из {self.total_tasks})"
+        self.ids.options_count_field.height = 0
+        self.ids.options_count_field.opacity = 0
 
     def open_task_type_menu(self):
         bottom_sheet = MDListBottomSheet()
@@ -142,18 +145,18 @@ class CreateTestScreen(BaseScreen):
         self.ids.tasks_section.size_hint_y = None
         self.ids.tasks_section.height = self.ids.tasks_section.minimum_height
 
-
     def on_pre_enter(self, *args):
         super().on_pre_enter(*args)
-        self.app = App.get_running_app()  # Получаем ссылку на приложение
-
+        self.app = App.get_running_app()
         self.selected_theme_id = ""
         self.selected_theme_name = "Выберите тему *"
         self.ids.theme.text = self.selected_theme_name
 
         if hasattr(self.app, 'user_data') and self.app.user_data:
-            print("Пользователь:", self.app.user_data.get("full_name", "Неизвестно"))
             self.user_id = self.app.user_data['id']
+
+        self.ids.num_tasks.text = "2"
+        self.create_task_forms()  # Показываем 2 формы сразу
 
     def show_task_creation_ui(self):
         self.ids.test_form_box.disabled = True
@@ -229,23 +232,11 @@ class CreateTestScreen(BaseScreen):
         # Добавляем кнопки управления
         buttons_box = BoxLayout(size_hint_y=None, height="80dp", spacing="10dp")
 
-        back_btn = MDRaisedButton(
-            text="Назад к тесту",
-            on_release=lambda x: self.show_test_form()
-        )
-
-        save_btn = MDRaisedButton(
-            text="Сохранить задания",
-            on_release=lambda x: self.send_tasks_to_server()
-        )
 
         add_btn = MDRaisedButton(
             text="+ Добавить задание",
             on_release=lambda x: self.add_single_task()
         )
-
-        buttons_box.add_widget(back_btn)
-        buttons_box.add_widget(save_btn)
         buttons_box.add_widget(add_btn)
 
         self.ids.tasks_container.add_widget(buttons_box)
@@ -479,3 +470,179 @@ class CreateTestScreen(BaseScreen):
         toast(f"Ошибка: {error}")
         self.ids.test_form_box.disabled = False
         #Animation(opacity=0.3, duration=0.3, t='out_quad').start(self.ids.test_form_box)
+
+    def load_test_for_edit(self, test_id):
+        self.test_id = test_id
+        app = App.get_running_app()
+
+        headers = {
+            "Authorization": f"Bearer {app.token}"
+        }
+
+        # Запрашиваем сам тест
+        UrlRequest(
+            url=f"{app.api_url}/tests/{test_id}",
+            req_headers=headers,
+            on_success=self.on_test_loaded,
+            on_error=self.on_error,
+            method="GET"
+        )
+
+    def on_test_loaded(self, req, result):
+        # Заполняем поля
+        self.ids.test_name.text = result["test_name"]
+        self.ids.description.text = result.get("description", "")
+        self.ids.time_limit.text = str(result.get("time_limit", ""))
+        self.ids.passing_score.text = str(result.get("passing_score", ""))
+        self.ids.attempts_limit.text = str(result.get("attempts_limit", ""))
+        self.selected_theme_id = result.get("theme_id", "")
+        self.ids.theme.text = result.get("theme_title", "Выбранная тема")
+
+        # Загружаем задания отдельно
+        self.load_test_tasks()
+
+    def load_test_tasks(self):
+        app = App.get_running_app()
+        headers = {
+            "Authorization": f"Bearer {app.token}"
+        }
+
+        UrlRequest(
+            url=f"{app.api_url}/tasks/by_test/{self.test_id}",
+            req_headers=headers,
+            on_success=self.on_tasks_loaded,
+            on_error=self.on_error,
+            method="GET"
+        )
+
+    def on_tasks_loaded(self, req=None, tasks=None):
+        # Для теста возьмём фиксированные данные, если tasks пустой
+        if not tasks:
+            tasks = [
+                {
+                    "question": "Какой цвет у неба?",
+                    "interaction_type": 2,
+                    "variable_answers": [
+                        {"string_answer": "Синий", "truthful": True},
+                        {"string_answer": "Красный", "truthful": False},
+                    ],
+                },
+                {
+                    "question": "Расскажи о себе",
+                    "interaction_type": 1,
+                    "variable_answers": [],
+                },
+            ]
+
+        self.ids.tasks_container.clear_widgets()
+
+        for i, task in enumerate(tasks, 1):
+            form = TaskForm(task_number=i, total_tasks=len(tasks))
+            print(f"Создаём форму для вопроса {i}: {task['question']}")
+            form.ids.question_field.text = task["question"]
+
+            if task["interaction_type"] == 2:
+                form.on_task_type_change("checkbox")
+                form.ids.options_count_field.text = str(len(task["variable_answers"]))
+                form.update_options()
+                for idx, answer in enumerate(task["variable_answers"]):
+                    # Получаем нужный элемент для варианта
+                    option_row = form.ids.options_container.children[::-1][idx]
+                    checkbox, option_field = option_row.children[::-1]
+                    option_field.text = answer["string_answer"]
+                    checkbox.active = answer["truthful"]
+
+            self.ids.tasks_container.add_widget(form)
+
+    def generate_task_forms(self):
+        try:
+            num_tasks = int(self.ids.num_tasks.text)
+            if num_tasks <= 0:
+                raise ValueError
+        except ValueError:
+            toast("Введите корректное число заданий")
+            return
+
+        self.ids.tasks_container.clear_widgets()
+        for i in range(num_tasks):
+            form = TaskForm(task_number=i + 1, total_tasks=num_tasks)
+            form.bind(on_task_change=self.auto_save_task)  # Привяжем обновление
+            self.ids.tasks_container.add_widget(form)
+
+    def update_test(self):
+        test_data = {
+            "test_name": self.ids.test_name.text.strip(),
+            "description": self.ids.description.text.strip(),
+            "time_limit": int(self.ids.time_limit.text or 0),
+            "passing_score": int(self.ids.passing_score.text or 0),
+            "theme_id": self.selected_theme_id,
+            "attempts_limit": int(self.ids.attempts_limit.text or 0)
+        }
+
+        app = App.get_running_app()
+        headers = {
+            "Authorization": f"Bearer {app.token}",
+            "Content-Type": "application/json"
+        }
+
+        UrlRequest(
+            url=f"{app.api_url}/tests/{self.test_id}",
+            req_headers=headers,
+            req_body=json.dumps(test_data),
+            on_success=lambda req, res: toast("Тест обновлён"),
+            on_error=self.on_error,
+            method="PUT"
+        )
+
+    def create_test_with_tasks(self):
+        try:
+            test_data = {
+                "test_name": self.ids.test_name.text.strip(),
+                "description": self.ids.description.text.strip(),
+                "time_limit": int(self.ids.time_limit.text or 0),
+                "passing_score": int(self.ids.passing_score.text or 0),
+                "theme_id": self.selected_theme_id,
+                "attempts_limit": int(self.ids.attempts_limit.text or 0)
+            }
+        except ValueError:
+            toast("Проверьте числовые поля")
+            return
+
+        if not test_data["test_name"]:
+            toast("Введите название теста")
+            return
+
+        app = App.get_running_app()
+        headers = {
+            "Authorization": f"Bearer {app.token}",
+            "Content-Type": "application/json"
+        }
+
+        def on_test_created(req, result):
+            self.test_id = result["id"]
+            self.send_tasks_to_server()
+
+        UrlRequest(
+            url=f"{app.api_url}/tests/",
+            req_body=json.dumps(test_data),
+            req_headers=headers,
+            on_success=on_test_created,
+            on_error=self.on_error,
+            method='POST'
+        )
+
+    def add_tasks(self, tasks_data):
+        container = self.ids.tasks_container
+        container.clear_widgets()  # очистить перед добавлением
+
+        for task in tasks_data:
+            form = TaskForm()
+            container.add_widget(form)
+
+            # Теперь нужно заполнить поля в конкретном экземпляре:
+            form.ids.question_field.text = task["question"]
+            form.ids.type_button.text = f"Тип: {task['type']}"
+            form.ids.options_count_field.text = str(task["options_count"])
+
+            # При необходимости можно вызвать update_options, если нужно отобразить варианты
+            form.update_options()
