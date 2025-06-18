@@ -127,6 +127,10 @@ class RZDLoginApp(MDApp):
         if hasattr(self, 'user_data'):
             self.user_data.update(new_data)
 
+    def save_user_role(self, user_data):
+        role = user_data.get("role", "")
+        self.user_role = role.lower() if isinstance(role, str) else ""
+        self.user_data = user_data
 
 
 if __name__ == "__main__":

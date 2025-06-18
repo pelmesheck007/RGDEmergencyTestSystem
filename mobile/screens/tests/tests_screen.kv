@@ -34,8 +34,9 @@
                 size: dp(180), dp(48)
                 pos_hint: {"center_x": 0.5}
                 on_release: root.create_test()
-                opacity: 0 if root.can_create_test else 1
-                disabled:  root.can_create_test
+                opacity: 1 if root.can_create_test else 0
+                disabled: not root.can_create_test
+
 
 
             MDSpinner:

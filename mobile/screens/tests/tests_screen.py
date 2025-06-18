@@ -51,7 +51,15 @@ class TestsScreen(BaseScreen):
 
     def on_pre_enter(self, *args):
         super().on_pre_enter(*args)
-        self.can_create_test = getattr(self.app, "user_role", "") in ("admin", "teacher")
+
+        role = App.get_running_app().user_data.get("role", "").lower()
+
+        self.user_role = role
+        self.can_create_test = role in ("admin", "teacher")
+        self.is_admin = role == "admin"
+        self.is_teacher = role == "teacher"
+        self.is_student = role == "student"
+
         self.load_all_tests()
 
     def load_all_tests(self):
@@ -169,40 +177,44 @@ class TestsScreen(BaseScreen):
         )
         self.dialog.open()
 
-
-
     def show_scenario_test_details(self, test_data):
         self.selected_test = test_data
-        self.dialog = MDDialog(
-            title=test_data.get('title', 'Сценарий'),
-            text=self._format_test_details(test_data),
-            buttons=[
-                # СЛЕВА: кнопка "Удалить" — добавлена первой
+        buttons = []
+        if self.can_create_test:
+            buttons.append(
                 MDFlatButton(
                     text="УДАЛИТЬ",
                     theme_text_color="Custom",
                     text_color=self.app.rjd_dark_red,
                     on_release=self.confirm_delete_test
-                ),
+                )
+            )
+            buttons.append(
                 MDFlatButton(
                     text="РЕДАКТИРОВАТЬ",
                     theme_text_color="Custom",
                     text_color=self.app.rjd_dark_red,
                     on_release=self.edit_selected_test
-                ),
-                # СПРАВА: кнопки "Закрыть" и "Начать тест"
-                MDFlatButton(
-                    text="ЗАКРЫТЬ",
-                    theme_text_color="Custom",
-                    text_color=self.app.rjd_dark_red,
-                    on_release=lambda x: self.dialog.dismiss()
-                ),
-                MDFlatButton(
-                    text="НАЧАТЬ ТЕСТ",
-                    theme_text_color="Custom",
-                    text_color=self.app.rjd_dark_red,
-                    on_release=self.start_test
-                )]
+                )
+            )
+        buttons.extend([
+            MDFlatButton(
+                text="ЗАКРЫТЬ",
+                theme_text_color="Custom",
+                text_color=self.app.rjd_dark_red,
+                on_release=lambda x: self.dialog.dismiss()
+            ),
+            MDFlatButton(
+                text="НАЧАТЬ ТЕСТ",
+                theme_text_color="Custom",
+                text_color=self.app.rjd_dark_red,
+                on_release=self.start_test
+            )
+        ])
+        self.dialog = MDDialog(
+            title=test_data.get('title', 'Сценарий'),
+            text=self._format_test_details(test_data),
+            buttons=buttons
         )
         self.dialog.open()
 

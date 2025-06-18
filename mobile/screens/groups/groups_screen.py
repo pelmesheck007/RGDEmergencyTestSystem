@@ -21,7 +21,28 @@ class GroupsScreen(BaseScreen):
     screen_title = "Учебные группы"
 
     def on_pre_enter(self):
+        super().on_pre_enter()
+
+        app = App.get_running_app()
+        role = getattr(app, "user_data", {}).get("role", "").lower()
+
+        self.user_role = role
+        self.is_admin = role == "admin"
+        self.is_teacher = role == "teacher"
+        self.is_student = role == "student"
+        self.can_edit_group = self.is_admin or self.is_teacher
+        self.can_assign_test = self.is_admin or self.is_teacher
+        self.can_create_group = self.is_admin or self.is_teacher
+
+        self.setup_top_bar_buttons()
         self.load_groups()
+
+    def setup_top_bar_buttons(self):
+        top_bar = self.ids.menu_button
+        top_bar.right_action_items = []  # Очистим на всякий случай
+
+        if self.can_create_group:
+            top_bar.right_action_items = [["plus", lambda x: setattr(self.manager, 'current', 'create_group')]]
 
     def load_groups(self):
         self.ids.groups_box.clear_widgets()
@@ -40,24 +61,27 @@ class GroupsScreen(BaseScreen):
 
     def on_success(self, req, result):
         self.groups = result  # сохраняем для повторного использования
+        app = App.get_running_app()
+        role = getattr(app, "user_data", {}).get("role", "").lower()
+
         for group in result:
             item = TwoLineRightIconListItem(
                 text=group["name"],
-                #secondary_text=f"ID: {group['id']}",
                 on_release=lambda x, g=group: self.open_group(g)
             )
 
-            delete_icon = IconRightWidget(
-                icon="delete",
-                on_release=lambda x, g=group: self.confirm_delete_group(g)
-            )
-            edit_icon = IconRightWidget(
-                icon="pencil",
-                on_release=lambda x, g=group: self.edit_group(g)
-            )
+            if role in ["admin", "teacher"]:
+                edit_icon = IconRightWidget(
+                    icon="pencil",
+                    on_release=lambda x, g=group: self.edit_group(g)
+                )
+                delete_icon = IconRightWidget(
+                    icon="delete",
+                    on_release=lambda x, g=group: self.confirm_delete_group(g)
+                )
+                item.add_widget(edit_icon)
+                item.add_widget(delete_icon)
 
-            item.add_widget(edit_icon)
-            item.add_widget(delete_icon)
             self.ids.groups_box.add_widget(item)
 
     def edit_group(self, group):
@@ -227,14 +251,18 @@ class GroupsScreen(BaseScreen):
         scroll = ScrollView(size_hint=(1, None), size=("400dp", "400dp"))
         scroll.add_widget(self.assigned_tests_box)
 
+        buttons = [
+            MDFlatButton(text="Закрыть", on_release=lambda x: self.dialog.dismiss())
+        ]
+
+        if self.can_assign_test:
+            buttons.append(MDRaisedButton(text="Добавить", on_release=self.show_add_test_dialog))
+
         self.dialog = MDDialog(
             title=f"Назначенные тесты: {group['name']}",
             type="custom",
             content_cls=scroll,
-            buttons=[
-                MDFlatButton(text="Закрыть", on_release=lambda x: self.dialog.dismiss()),
-                MDRaisedButton(text="Добавить", on_release=self.show_add_test_dialog),
-            ],
+            buttons=buttons,
         )
         self.dialog.open()
 
@@ -264,16 +292,18 @@ class GroupsScreen(BaseScreen):
             )
             return
 
+        app = App.get_running_app()
+        role = getattr(app, "user_data", {}).get("role", "").lower()
+
         for test in result:
             item = OneLineRightIconListItem(text=test["test_name"])
 
-
-            # Добавляем иконку удаления
-            delete_icon = IconRightWidget(
-                icon="delete",
-                on_release=lambda x, t_id=test["id"]: self.confirm_unassign_test(t_id)
-            )
-            item.add_widget(delete_icon)
+            if role in ["admin", "teacher"]:
+                delete_icon = IconRightWidget(
+                    icon="delete",
+                    on_release=lambda x, t_id=test["id"]: self.confirm_unassign_test(t_id)
+                )
+                item.add_widget(delete_icon)
 
             self.assigned_tests_box.add_widget(item)
 
