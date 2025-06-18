@@ -7,7 +7,8 @@ from kivymd.uix.boxlayout import MDBoxLayout
 from kivymd.uix.button import MDFlatButton, MDRaisedButton
 from kivymd.uix.dialog import MDDialog
 from kivymd.uix.label import MDLabel
-from kivymd.uix.list import OneLineListItem, TwoLineRightIconListItem, IconRightWidget, OneLineAvatarIconListItem
+from kivymd.uix.list import OneLineListItem, TwoLineRightIconListItem, IconRightWidget, OneLineAvatarIconListItem, \
+    OneLineRightIconListItem
 from kivymd.toast import toast
 from kivy.app import App
 from kivymd.uix.selectioncontrol import MDCheckbox
@@ -42,7 +43,7 @@ class GroupsScreen(BaseScreen):
         for group in result:
             item = TwoLineRightIconListItem(
                 text=group["name"],
-                secondary_text=f"ID: {group['id']}",
+                #secondary_text=f"ID: {group['id']}",
                 on_release=lambda x, g=group: self.open_group(g)
             )
 
@@ -78,13 +79,20 @@ class GroupsScreen(BaseScreen):
         else:
             self.show_error("Роль пользователя не определена.")
 
-    def confirm_delete_group(self, group):
+    def confirm_unassign_test(self, test_id):
+        from kivymd.uix.dialog import MDDialog
+        from kivymd.uix.button import MDFlatButton
+
+        def unassign(*args):
+            self.unassign_test(test_id)
+            self.dialog.dismiss()
+
         self.dialog = MDDialog(
-            title="Удалить группу?",
-            text=f"Вы уверены, что хотите удалить группу '{group['name']}'?",
+            title="Удаление теста",
+            text="Вы уверены, что хотите удалить этот тест?",
             buttons=[
                 MDFlatButton(text="Отмена", on_release=lambda x: self.dialog.dismiss()),
-                MDFlatButton(text="Удалить", on_release=lambda x: self.delete_group(group)),
+                MDFlatButton(text="Удалить", on_release=unassign),
             ],
         )
         self.dialog.open()
@@ -225,7 +233,7 @@ class GroupsScreen(BaseScreen):
             content_cls=scroll,
             buttons=[
                 MDFlatButton(text="Закрыть", on_release=lambda x: self.dialog.dismiss()),
-                # MDRaisedButton(text="Добавить", on_release=self.show_add_test_dialog),
+                MDRaisedButton(text="Добавить", on_release=self.show_add_test_dialog),
             ],
         )
         self.dialog.open()
@@ -257,5 +265,102 @@ class GroupsScreen(BaseScreen):
             return
 
         for test in result:
-            item = OneLineListItem(text=test["test_name"])
+            item = OneLineRightIconListItem(text=test["test_name"])
+
+
+            # Добавляем иконку удаления
+            delete_icon = IconRightWidget(
+                icon="delete",
+                on_release=lambda x, t_id=test["id"]: self.confirm_unassign_test(t_id)
+            )
+            item.add_widget(delete_icon)
+
             self.assigned_tests_box.add_widget(item)
+
+    def show_add_test_dialog(self, *args):
+        app = App.get_running_app()
+        url = f"{App.get_running_app().api_url}/tests/"
+
+        def on_success(req, result):
+            # Создаём контейнер с фиксированной высотой
+            menu_layout = MDBoxLayout(
+                orientation="vertical",
+                spacing="8dp",
+                padding="8dp",
+                size_hint_y=None
+            )
+            menu_layout.bind(minimum_height=menu_layout.setter("height"))
+
+            # Оборачиваем в ScrollView с фиксированной высотой
+            scroll = ScrollView(
+                size_hint=(1, None),
+                height="300dp"  # <= обязательно: иначе ничего не будет видно!
+            )
+            scroll.add_widget(menu_layout)
+
+            for test in result:
+                def on_select(_, test_id=test["id"]):
+                    self.assign_test_and_close(test_id)
+                    self.add_test_dialog.dismiss()
+
+                item = OneLineListItem(text=test["test_name"])
+                item.bind(on_release=on_select)
+                menu_layout.add_widget(item)
+
+            self.add_test_dialog = MDDialog(
+                title="Выберите тест",
+                type="custom",
+                content_cls=scroll,
+                buttons=[
+                    MDFlatButton(text="Отмена", on_release=lambda x: self.add_test_dialog.dismiss())
+                ]
+            )
+            self.add_test_dialog.open()
+
+            print("Полученные тесты:", result)
+
+        def on_error(*args):
+            print("Ошибка загрузки тестов:", args)
+
+        UrlRequest(url, on_success=on_success, on_error=on_error)
+
+    def assign_test_and_close(self, test_id):
+        app = App.get_running_app()
+        group_id = self.current_group_id
+        if not group_id:
+            toast("Группа не выбрана")
+            return
+
+        headers = {
+            "Authorization": f"Bearer {app.token}",
+            "Content-Type": "application/json"
+        }
+
+        data = json.dumps({"test_id": test_id})
+
+        def on_success(req, result):
+            toast("Тест назначен")
+            self.add_test_dialog.dismiss()
+            self.load_assigned_tests(group_id)
+
+        def on_error(req, error):
+            toast("Ошибка назначения теста")
+
+        UrlRequest(
+            url=f"{App.get_running_app().api_url}/groups/{group_id}/assigned_tests",
+            req_headers=headers,
+            req_body=data,
+            method="POST",
+            on_success=on_success,
+            on_error=on_error
+        )
+
+    def unassign_test(self, test_id):
+        app = App.get_running_app()
+        url = f"{App.get_running_app().api_url}/groups/{self.current_group_id}/assigned_tests/{test_id}"
+
+        def on_success(req, result):
+            self.load_assigned_tests(self.current_group_id)
+
+        UrlRequest(url, method="DELETE", on_success=on_success)
+

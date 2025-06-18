@@ -128,7 +128,7 @@ def get_assigned_tests(group_id: str, db: Session = Depends(get_db)):
 class AssignTestRequest(BaseModel):
     test_id: str
 
-@router.post("/{group_id}/assign_test")
+@router.post("/{group_id}/assigned_tests")
 def assign_test(group_id: str, body: AssignTestRequest, db: Session = Depends(get_db)):
     group = db.query(StudyGroup).filter_by(id=group_id).first()
     if not group:
@@ -156,7 +156,7 @@ def assign_test(group_id: str, body: AssignTestRequest, db: Session = Depends(ge
 
 @router.delete("/{group_id}/assigned_tests/{assigned_id}")
 def unassign_test(group_id: str, assigned_id: str, db: Session = Depends(get_db)):
-    assigned = db.query(GroupAssignedTest).filter_by(id=assigned_id, group_id=group_id).first()
+    assigned = db.query(GroupAssignedTest).filter_by(test_id=assigned_id, group_id=group_id).first()
     if not assigned:
         raise HTTPException(status_code=404, detail="Назначение теста не найдено")
 
