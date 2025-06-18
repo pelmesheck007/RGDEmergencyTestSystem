@@ -54,14 +54,10 @@
 
                     ScrollView:
                         size_hint_y: None
-                        height: dp(120)
+                        height: dp(220)
 
                         MDList:
                             id: members_list
-
-                    MDTextField:
-                        id: new_member_username
-                        hint_text: "Имя пользователя для добавления"
 
                     MDRaisedButton:
                         text: "Добавить участника"
@@ -69,8 +65,9 @@
                         text_color: app.rjd_white
                         size_hint: None, None
                         size: dp(200), dp(40)
-                        pos_hint: {"right": 0.95}  # Правый край на 95% ширины
-                        on_release: root.add_member()
+                        pos_hint: {"right": 0.95}
+                        on_release: root.open_add_member_dialog()
+
 
 
                     MDRaisedButton:
@@ -79,3 +76,4 @@
                         text_color: app.rjd_white
                         pos_hint: {"center_x": .5}
                         on_release: root.save_changes()
+
